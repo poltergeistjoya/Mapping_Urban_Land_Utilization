@@ -1,13 +1,22 @@
 from fastapi import FastAPI, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker, Session
 from models.locations import Base, Location
 from geoalchemy2.functions import ST_AsGeoJSON
 
-DATABASE_URL = "postgresql://postgres:password@localhost:5432/urban_utilization"
+DATABASE_URL = "postgresql://postgres:password@localhost:5432/urban_utilization" 
+
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 #Connect tp PostGIS database
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind = engine)
