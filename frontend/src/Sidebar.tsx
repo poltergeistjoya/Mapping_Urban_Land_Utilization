@@ -5,15 +5,19 @@ type SidebarProps = {
 };
 
 const Sidebar = ({ cityNames, onSelect }: SidebarProps) => (
-    <div style={{ padding: "1rem" }}>
+    <div id="sidebar" style={{ padding: "1rem" }}>
       <h3>Select a city</h3>
-      <ul>
+      <select
+      onChange={(e)=> onSelect(e.target.value)}
+      defaultValue="Baltimore"
+      style={{padding: "0.5rem", fontSize: "1rem" }}
+      >
         {cityNames.map((city) => (
-          <li key={city}>
-            <button onClick={() => onSelect(city)}>{city}</button>
-          </li>
+            <option key={city} value={city}>
+                {city}
+            </option>
         ))}
-      </ul>
+      </select>
     </div>
   );
   
