@@ -36,8 +36,14 @@ def get_db():
         db.close()
 
 @app.get("/")
-def read_root():
-    return {"message":"FastAPI + PostGIS API is running!"}
+def read_root(db: Session = Depends(get_db)):
+    locations = db.scalars(select(Location)).all()
+    cities = [
+        loc.name
+        for loc in locations
+        if "city" in loc.location_type
+    ]
+    return sorted(set(cities))
 
 #TODO make this into a {} so specific locs can be panned to 
 @app.get("/locations/")
