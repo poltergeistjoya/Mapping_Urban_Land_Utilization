@@ -5,16 +5,36 @@ import MapView from "./MapView";
 
 const App = () => {
   const [cityNames, setCityNames] = useState<string[]>([]);
+  const [features, setFeatures] = useState<any[]>([]);
   const [selectedFeature, setSelectedFeature] = useState<any | null>(null);
-  const handleCitySelect = (cityName: string) => {setSelectedFeature(null); // we'll hook this up later
-};
-
+// Load city names with default selected
   useEffect(() => {
     axios.get("http://localhost:8000/")
       .then((res) => {
         setCityNames(res.data);
+        fetchFeature("Baltimore"); // Default load
       });
   }, []);
+
+  const fetchFeature = (cityName: string) => {
+    axios
+        .get("http://localhost:8000/locations/", {
+            params: {name: cityName },
+        })
+        .then((res) => {
+            const features = res.data.map((loc: any) => ({
+                type: "Feature",
+                geometry: JSON.parse(loc.geometry),
+                properties: { name: loc.name },
+            }));
+
+            setSelectedFeature(features[0]);
+        });
+  };
+
+  const handleCitySelect = (cityName: string) => {
+    fetchFeature(cityName);
+  };
 
   return (
     <div style={{ display: "flex", height: "100vh" }}>
@@ -22,7 +42,7 @@ const App = () => {
         <Sidebar cityNames={cityNames} onSelect={handleCitySelect} />
       </div>
       <div style={{ flex: 1 }}>
-        <MapView />
+        <MapView selectedFeature={selectedFeature} />
       </div>
     </div>
   );

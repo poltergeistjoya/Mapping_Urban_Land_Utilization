@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker, Session
@@ -45,10 +45,11 @@ def read_root(db: Session = Depends(get_db)):
     ]
     return sorted(set(cities))
 
-#TODO make this into a {} so specific locs can be panned to 
+#TODO should this only give one location ... i dont know ....
 @app.get("/locations/")
-def get_locations(db: Session = Depends(get_db)):
-    locations = db.scalars(select(Location)).all()
+def get_locations(name: str = Query(None), db: Session = Depends(get_db)):
+    query = select(Location).where(Location.name == name)
+    locations = db.scalars(query).all()
 
     return [
         {
