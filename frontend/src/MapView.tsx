@@ -11,7 +11,7 @@ const MapView = () => {
         zoom: 10,
       }}
       style={{ width: "100%", height: "100%" }}
-      mapStyle="https://demotiles.maplibre.org/style.json"
+      mapStyle="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
     />
   </div>
   );
