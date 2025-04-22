@@ -1,10 +1,10 @@
 import structlog
-from fastapi import FastAPI, Depends, Query
+from fastapi import FastAPI, Depends, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker, Session
 from models.tables import Base, Location, Place
-from geoalchemy2.functions import ST_AsGeoJSON
+from geoalchemy2.functions import ST_AsGeoJSON, ST_Within
 
 log = structlog.get_logger()
 DATABASE_URL = "postgresql://postgres:password@localhost:5432/urban_utilization" 
@@ -65,6 +65,34 @@ def get_place_types(db: Session = Depends(get_db)):
     log.info(f"got place types {place_types}")
     return sorted(set(place_types))
 
+@app.get("/places/")
+def get_places(
+    place_type:str, 
+    location_name: str, 
+    db: Session = Depends(get_db)
+):
+    #Get location polygon
+    location = db.scalar(
+        select(Location).where(Location.name==location_name)
+    )
+    if not location:
+        raise HTTPException(status_code=404, detail=f"{location_name} not found")
+    # Find all places within that polygon
+    places = db.scalars(
+        select(Place)
+        .where(Place.place_type == place_type)
+        .where(ST_Within(Place.geom, location.geom))
+    ).all()
+
+    return [
+        {
+            "id": place.id, 
+            "name": place.name, 
+            "desc": place.desc,
+            "geometry": db.scalar(ST_AsGeoJSON(place.geom))
+        }
+        for place in places
+    ]
 
 if __name__ == "__main__":
     import uvicorn

@@ -3,9 +3,10 @@ import "maplibre-gl/dist/maplibre-gl.css";
 
 type MapViewProps = {
   selectedFeature: any | null;
+  placeFeatures: any[];
 };
 
-const MapView = ({ selectedFeature }: MapViewProps) => {
+const MapView = ({ selectedFeature, placeFeatures }: MapViewProps) => {
   return (
     <div style={{ width: "100%", height: "100%", backgroundColor: "#ccc" }}>
       <Map
@@ -30,7 +31,7 @@ const MapView = ({ selectedFeature }: MapViewProps) => {
             type="fill"
             paint={{
               "fill-color": "#ff0000",
-              "fill-opacity": 0.5,
+              "fill-opacity": 0.1,
             }}
           />
           <Layer
@@ -42,6 +43,25 @@ const MapView = ({ selectedFeature }: MapViewProps) => {
             }}
           />
         </Source>
+        <Source
+            id="places-source"
+            type="geojson"
+            data={{
+                type: "FeatureCollection",
+                features: placeFeatures || [],
+            }}
+            >
+            <Layer
+                id="places-layer"
+                type="circle"
+                paint={{
+                "circle-radius": 6,
+                "circle-color": "#007cbf",
+                "circle-stroke-width": 1,
+                "circle-stroke-color": "#fff",
+                }}
+            />
+            </Source>
       </Map>
     </div>
   );
