@@ -105,6 +105,7 @@ def populate_places(session, rows, verbose=True):
         geom = row["geom"]
 
         #normalize geometry
+        
 
         if not isinstance(geom, Point):
             log.warning(f"Skipping{name}, {desc}, geometry is {geom.geom_type}, not Point")

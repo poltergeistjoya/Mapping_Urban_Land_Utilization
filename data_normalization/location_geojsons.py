@@ -145,7 +145,7 @@ def _(ALLOWED_PLACE_TYPES, Point, re):
             "year_added": row[col_map.get("year_added",None)],
             "year_removed": None, 
             "location_id": None,
-            "geom": row[col_map.get("geom")],
+            "geom": row[col_map.get("geom", None)],
 
         }
     return extract_point_from_string, normalize_to_place
@@ -191,23 +191,100 @@ def _(
 
 
 @app.cell
-def _(
-    Base,
-    Session,
-    all_locations_df,
-    bmore_st_vend_normalized,
-    engine,
-    ensure_all_tables,
-    populate_locations,
-    populate_places,
-):
-    #ONLY WHEN YOU WANT TO CREATE ALL TABLES
-    ensure_all_tables(engine, Base)
+def _(bmore_trash_cans_OSM, nyc_trash_cans):
+    nyc_trash_cans["geometry"].apply(lambda g: g.geom_type).unique()
+    bmore_trash_cans_OSM["geometry"].apply(lambda g: g.geom_type).unique()
 
-    with Session(engine) as session:
-        added, skipped = populate_locations(session, all_locations_df.to_dict("records"))
-        added_bmore_st, skipped_bmore_st = populate_places(session, bmore_st_vend_normalized.to_dict("records"))
-    return added, added_bmore_st, session, skipped, skipped_bmore_st
+    return
+
+
+@app.cell
+def _(GEOJSON_DIR, gpd, normalize_to_place):
+    bmore_trash_cans_OSM = gpd.read_file(GEOJSON_DIR + "baltimore_trash_cans_OSM.geojson")
+    bmore_trash_cans_OSM["name"] = "Trash Can"
+    bmore_trash_cans_OSM["desc"] = None
+    bmore_trash_cans_OSM["year_added"] = None
+
+    bmore_trash_OSM_col_map = {
+        "name": "name",
+        "desc": "desc",
+        "geom": "geometry",
+        "year_added": "year_added"
+    }
+
+    bmore_trash_cans_OSM_normalized = gpd.GeoDataFrame(
+        bmore_trash_cans_OSM.apply(
+            lambda row: normalize_to_place(
+                row=row,
+                col_map=bmore_trash_OSM_col_map,
+                place_type="trash_can"
+            ),
+            axis=1
+        ).tolist(),
+        geometry="geom",
+        crs="EPSG:4326"
+    )
+
+    bmore_trash_cans_OSM_normalized
+    return (
+        bmore_trash_OSM_col_map,
+        bmore_trash_cans_OSM,
+        bmore_trash_cans_OSM_normalized,
+    )
+
+
+@app.cell
+def _(GEOJSON_DIR, gpd, normalize_to_place):
+    nyc_trash_cans = gpd.read_file(GEOJSON_DIR + "NYC_trash_cans_2025.geojson")
+    nyc_trash_cans["name"] = nyc_trash_cans["streetname1"].fillna("").astype(str) + "&" + nyc_trash_cans["streetname2"].fillna("").astype(str)
+    nyc_trash_cans["desc"] = nyc_trash_cans["location_description"]
+    nyc_trash_cans["year_added"] = 2025
+
+    nyc_trash_can_map = {
+        "name": "name",
+        "desc": "desc",
+        "geom": "geometry",
+        "year_added": "year_added"
+    }
+
+    nyc_trash_cans_normalized = gpd.GeoDataFrame(
+        nyc_trash_cans.apply(
+            lambda row: normalize_to_place(
+                row=row,
+                col_map=nyc_trash_can_map,
+                place_type="trash_can"
+            ),
+            axis=1
+        ).tolist(),
+        geometry="geom",
+        crs="EPSG:4326"
+    )
+
+    nyc_trash_cans_normalized
+    return nyc_trash_can_map, nyc_trash_cans, nyc_trash_cans_normalized
+
+
+@app.cell
+def _(bmore_trash_cans_OSM_normalized, gpd, nyc_trash_cans_normalized, pd):
+    all_trash_cans_df = gpd.GeoDataFrame(
+        pd.concat([bmore_trash_cans_OSM_normalized, nyc_trash_cans_normalized], ignore_index=True, verify_integrity =True), 
+        geometry="geom", 
+        crs="EPSG:4326"
+    )
+    all_trash_cans_df
+    return (all_trash_cans_df,)
+
+
+@app.cell
+def _():
+    # #ONLY WHEN YOU WANT TO CREATE ALL TABLES
+    # ensure_all_tables(engine, Base)
+
+    # with Session(engine) as session:
+    #     added, skipped = populate_locations(session, all_locations_df.to_dict("records"))
+    #     added_bmore_st, skipped_bmore_st = populate_places(session, bmore_st_vend_normalized.to_dict("records"))
+    #     added_trash, skipped_trash = populate_places(session, all_trash_cans_df.to_dict("records"))
+    return
 
 
 if __name__ == "__main__":

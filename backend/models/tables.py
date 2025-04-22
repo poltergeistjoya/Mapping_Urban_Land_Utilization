@@ -36,7 +36,7 @@ class Location(Base):
         kwargs["location_type"] = types 
         super().__init__(**kwargs)
 
-ALLOWED_PLACE_TYPES = {"street_vendor"}
+ALLOWED_PLACE_TYPES = {"street_vendor", "trash_can"}
 class Place(Base):
     __tablename__ ="places"
 
@@ -49,8 +49,18 @@ class Place(Base):
     year_removed = Column(Integer, nullable=True)
 
     location_id = Column(Integer,ForeignKey("locations.id")) #smallest location it is contained in
-    geom = Column(Geometry("POINT"))
+    geom = Column(Geometry("POINT"), nullable=False)
 
+    def __init__(self, **kwargs):
+        type = kwargs.get("place_type")
+        
+        if type not in ALLOWED_PLACE_TYPES:
+            name = kwargs.get("name", "unknown")
+            geom = kwargs.get("geom", "unknown")
+            raise ValueError(f"Invalid place type: {type} in place {name}, {geom}")
+        
+        kwargs["place_type"] = type 
+        super().__init__(**kwargs)
     ## Attempt to put index on geom, but getting (psycopg2.errors.DuplicateTable) relation "idx_places_geom" already exists 
     # __table_args__ = (
     #     Index("idx_places_geom", "geom", postgresql_using="gist"),
