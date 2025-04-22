@@ -8,7 +8,8 @@ app = marimo.App(width="medium")
 def _(__file__):
     import geopandas as gpd
     import pandas as pd
-    from shapely.geometry import mapping 
+    import re
+    from shapely.geometry import mapping, Point
     from geoalchemy2.shape import from_shape
     from sqlalchemy import create_engine
     from sqlalchemy.orm import Session
@@ -18,11 +19,13 @@ def _(__file__):
 
     #to import other packages
     sys.path.append(str(pathlib.Path(__file__).resolve().parent.parent))
-    from backend.models.locations import Location, Base
-    from backend.populate_db import engine, ensure_all_tables, populate_locations
+    from backend.models.tables import Location, Base, ALLOWED_PLACE_TYPES
+    from backend.populate_db import engine, ensure_all_tables, populate_locations, populate_places
     return (
+        ALLOWED_PLACE_TYPES,
         Base,
         Location,
+        Point,
         Session,
         create_engine,
         engine,
@@ -33,6 +36,8 @@ def _(__file__):
         pathlib,
         pd,
         populate_locations,
+        populate_places,
+        re,
         sys,
     )
 
@@ -112,16 +117,97 @@ def _(cities_df, gpd, nyc_boroughs_normalized, pd):
 
 
 @app.cell
-def _(Base, engine, ensure_all_tables):
-    ensure_all_tables(engine, Base)
-    return
+def _(GEOJSON_DIR, gpd):
+    baltimore_street_vendor = gpd.read_file(GEOJSON_DIR + "Baltimore_Street_Food_Vendor_Locations.geojson")
+    baltimore_street_vendor.columns
+    return (baltimore_street_vendor,)
 
 
 @app.cell
-def _(Session, all_locations_df, engine, populate_locations):
+def _(ALLOWED_PLACE_TYPES, Point, re):
+    def extract_point_from_string(regex_string, loc_str):
+        match = re.search(regex_string, loc_str)
+        if match: 
+            lat, lon = float(match.group(1)), float(match.group(2))
+            return Point(lon,lat)
+        return None
+
+    def normalize_to_place(row, col_map, place_type):
+        if place_type not in ALLOWED_PLACE_TYPES:
+            print(f"[normalize_to_place] Skipping row — invalid place_type: '{place_type}'")
+            return None
+
+        return{
+            "name": row[col_map.get("name", None)],
+            "desc": row[col_map.get("desc", None)],
+            "place_type": place_type, 
+            "active": True, 
+            "year_added": row[col_map.get("year_added",None)],
+            "year_removed": None, 
+            "location_id": None,
+            "geom": row[col_map.get("geom")],
+
+        }
+    return extract_point_from_string, normalize_to_place
+
+
+@app.cell
+def _(
+    baltimore_street_vendor,
+    extract_point_from_string,
+    gpd,
+    normalize_to_place,
+):
+    regex_bmore_point_street_vendor = r"\(([-\d\.]+), ([-\d\.]+)\)"
+    baltimore_street_vendor["geom"] = baltimore_street_vendor["Location_1"].apply(lambda val: extract_point_from_string(regex_bmore_point_street_vendor, val)
+                                                                    )
+    baltimore_street_vendor["year_added"] = 2023
+    bmore_street_vendor_col_map = {
+        "name": "Cart_Descr",
+        "desc": "ItemsSold",
+        "geom": "geom",
+        "year_added": "year_added"
+    }
+    bmore_st_vend_normalized = gpd.GeoDataFrame(
+        baltimore_street_vendor.apply(
+            lambda row: normalize_to_place(
+                row=row,
+                col_map=bmore_street_vendor_col_map,
+                place_type="street_vendor"
+            ),
+            axis=1
+        ).tolist(),
+        geometry="geom",
+        crs="EPSG:4326"
+    )
+
+    bmore_st_vend_normalized
+
+    return (
+        bmore_st_vend_normalized,
+        bmore_street_vendor_col_map,
+        regex_bmore_point_street_vendor,
+    )
+
+
+@app.cell
+def _(
+    Base,
+    Session,
+    all_locations_df,
+    bmore_st_vend_normalized,
+    engine,
+    ensure_all_tables,
+    populate_locations,
+    populate_places,
+):
+    #ONLY WHEN YOU WANT TO CREATE ALL TABLES
+    ensure_all_tables(engine, Base)
+
     with Session(engine) as session:
         added, skipped = populate_locations(session, all_locations_df.to_dict("records"))
-    return added, session, skipped
+        added_bmore_st, skipped_bmore_st = populate_places(session, bmore_st_vend_normalized.to_dict("records"))
+    return added, added_bmore_st, session, skipped, skipped_bmore_st
 
 
 if __name__ == "__main__":

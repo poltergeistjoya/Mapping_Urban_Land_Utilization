@@ -12,3 +12,14 @@ Trying census shapefiles, places, maryland https://www.census.gov/cgi-bin/geo/sh
 
 nyc bouroughs api endpoint: "https://data.ci
 tyofnewyork.us/resource/wh2p-dxnf.geojson"
+
+stret vendor data:
+
+baltimore:https://data.baltimorecity.gov/datasets/baltimore::food-vendor-locations-1/about
+nyc: Trying to contact someone from the DOHMH to find this data ugh
+overpass-turbo, look at wiki tags https://taginfo.openstreetmap.org/
+
+
+potential
+nyc: farmers markets
+Baltimore: liquor Licenses

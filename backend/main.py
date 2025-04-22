@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker, Session
-from models.locations import Base, Location
+from models.tables import Base, Location
 from geoalchemy2.functions import ST_AsGeoJSON
 
 DATABASE_URL = "postgresql://postgres:password@localhost:5432/urban_utilization" 
