@@ -1,10 +1,11 @@
 type SidebarProps = {
-    // I think i want the sidebar to always have city names and it shold be those tihng sin the db with city in location_type ...
     cityNames: string[]; 
+    placeTypes: string[];
     onSelect: (name:string) => void;
+    onTogglePlaceType: (type:string, checked:boolean) => void;
 };
 
-const Sidebar = ({ cityNames, onSelect }: SidebarProps) => (
+const Sidebar = ({ cityNames, placeTypes, onSelect, onTogglePlaceType }: SidebarProps) => (
     <div id="sidebar" style={{ padding: "1rem" }}>
       <h3>Select a city</h3>
       <select
@@ -18,6 +19,17 @@ const Sidebar = ({ cityNames, onSelect }: SidebarProps) => (
             </option>
         ))}
       </select>
+
+      <h3>Places</h3>
+      {placeTypes.map((type)=>(
+        <div key={type}>
+            <label>
+                <input type = "checkbox"
+                onChange={(e) => onTogglePlaceType(type, e.target.checked)}/>
+                {type}
+            </label>
+        </div>
+      ))}
     </div>
   );
   

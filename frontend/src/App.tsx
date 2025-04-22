@@ -7,13 +7,22 @@ const App = () => {
   const [cityNames, setCityNames] = useState<string[]>([]);
   const [features, setFeatures] = useState<any[]>([]);
   const [selectedFeature, setSelectedFeature] = useState<any | null>(null);
-// Load city names with default selected
+  const [placeTypes, setPlaceTypes] = useState<string[]>([]);
+
+  // Runs once on component mount, fetch all static data
   useEffect(() => {
+    // Load city names with default (baltimore) selected
     axios.get("http://localhost:8000/")
       .then((res) => {
         setCityNames(res.data);
         fetchFeature("Baltimore"); // Default load
       });
+
+    // Load place_types
+    axios.get("http://localhost:8000/place_types/")
+    .then((res) => {
+        setPlaceTypes(res.data)
+    });
   }, []);
 
   const fetchFeature = (cityName: string) => {
@@ -39,7 +48,7 @@ const App = () => {
   return (
     <div style={{ display: "flex", height: "100vh" }}>
       <div style={{ flex: "0 0 250px", padding: "1rem", background: "#f4f4f4" }}>
-        <Sidebar cityNames={cityNames} onSelect={handleCitySelect} />
+        <Sidebar cityNames={cityNames} placeTypes={placeTypes} onSelect={handleCitySelect} />
       </div>
       <div style={{ flex: 1 }}>
         <MapView selectedFeature={selectedFeature} />

@@ -1,10 +1,12 @@
+import structlog
 from fastapi import FastAPI, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker, Session
-from models.tables import Base, Location
+from models.tables import Base, Location, Place
 from geoalchemy2.functions import ST_AsGeoJSON
 
+log = structlog.get_logger()
 DATABASE_URL = "postgresql://postgres:password@localhost:5432/urban_utilization" 
 
 
@@ -20,9 +22,6 @@ app.add_middleware(
 #Connect tp PostGIS database
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind = engine)
-
-#Create tables if they don't exist 
-Base.metadata.create_all(bind=engine)
 
 session = Session(bind=engine)
 
@@ -59,6 +58,13 @@ def get_locations(name: str = Query(None), db: Session = Depends(get_db)):
         }
         for loc in locations
     ]
+
+@app.get("/place_types/")
+def get_place_types(db: Session = Depends(get_db)):
+    place_types = db.scalars(select(Place.place_type).distinct())
+    log.info(f"got place types {place_types}")
+    return sorted(set(place_types))
+
 
 if __name__ == "__main__":
     import uvicorn
