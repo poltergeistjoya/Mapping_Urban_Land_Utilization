@@ -8,7 +8,9 @@ app = marimo.App(width="medium")
 def _(__file__):
     import geopandas as gpd
     import pandas as pd
+    import matplotlib.pyplot as plt
     import re
+    from pathlib import Path
     from shapely.geometry import mapping, Point
     from geoalchemy2.shape import from_shape
     from sqlalchemy import create_engine
@@ -21,11 +23,15 @@ def _(__file__):
     #to import other packages
     sys.path.append(str(pathlib.Path(__file__).resolve().parent.parent))
     from backend.models.tables import Location, Base, ALLOWED_PLACE_TYPES
-    from backend.populate_db import engine, ensure_all_tables, populate_locations, populate_places
+    from backend.populate_db import engine, ensure_all_tables, populate_locations, populate_places, populate_edges
+
+    ox.settings.use_cache = True
+    ox.settings.log_console = True
     return (
         ALLOWED_PLACE_TYPES,
         Base,
         Location,
+        Path,
         Point,
         Session,
         create_engine,
@@ -37,6 +43,8 @@ def _(__file__):
         ox,
         pathlib,
         pd,
+        plt,
+        populate_edges,
         populate_locations,
         populate_places,
         re,
@@ -48,7 +56,8 @@ def _(__file__):
 def _():
     GEOJSON_DIR = "../random_data/geojsons/"
     SHPFILE_DIR = "../random_data/shapefiles/"
-    return GEOJSON_DIR, SHPFILE_DIR
+    GRAPHML_DIR = "../random_data/graphml/"
+    return GEOJSON_DIR, GRAPHML_DIR, SHPFILE_DIR
 
 
 @app.cell
@@ -290,79 +299,92 @@ def _():
 
 
 @app.cell
-def _(ox):
-    ox.settings.use_cache = True
-    ox.settings.log_console = True
+def _(GRAPHML_DIR, Path, ox):
+    baltimore_graph_path = Path(GRAPHML_DIR + "baltimore_walk.graphml")
+    nyc_graph_path = Path(GRAPHML_DIR + "nyc_walk.graphml")
 
-    return
+    if baltimore_graph_path.exists():
+        print("Loading cached baltimore graph")
+        G_baltimore = ox.load_graphml(baltimore_graph_path)
+    else:
+        G_baltimore = ox.graph_from_place("Baltimore, Maryland, USA", network_type="walk")
+        ox.save_graphml(G_baltimore, baltimore_graph_path)
+
+    if nyc_graph_path.exists():
+        print("Loading cached nyc graph")
+        G_nyc = ox.load_graphml(nyc_graph_path)
+    else:
+        G_nyc = ox.graph_from_place("New York City, New York, USA", network_type="walk")
+        ox.save_graphml(G_nyc, nyc_graph_path)
+
+    return G_baltimore, G_nyc, baltimore_graph_path, nyc_graph_path
 
 
 @app.cell
-def _(ox):
-
-    # Download walkable street network for Baltimore
-    G = ox.graph_from_place("Baltimore, Maryland, USA", network_type="walk")
-
+def _(G_baltimore, ox):
     # Convert to GeoDataFrame (edges = walkable segments)
-    gdf_edges = ox.graph_to_gdfs(G, nodes=False, edges=True)
-    return G, gdf_edges
+    baltimore_edges = ox.graph_to_gdfs(G_baltimore, nodes=False, edges=True)
+    baltimore_edges.plot()
+    return (baltimore_edges,)
 
 
 @app.cell
-def _(gdf_edges):
-    gdf_edges.plot()
-    return
+def _(G_nyc, ox, plt):
+    # Convert to GeoDataFrame (edges = walkable segments)
+    nyc_edges = ox.graph_to_gdfs(G_nyc, nodes=False, edges=True)
+    fig,ax =plt.subplots(figsize=(12,12))
+    nyc_edges.plot(ax=ax)
+    return ax, fig, nyc_edges
 
 
 @app.cell
-def _(gdf_edges):
-    gdf_edges
-    return
-
-
-@app.cell
-def _(gdf_edges):
+def _(baltimore_edges):
     from itertools import chain
 
     set(chain.from_iterable(
         v if isinstance(v, list) else [v]
-        for v in gdf_edges["highway"]
+        for v in baltimore_edges["highway"]
     ))
     return (chain,)
 
 
 @app.cell
-def _(ox):
-    # Download walkable street network for Baltimore
-    nyc_walk = ox.graph_from_place("New York City, New York, USA", network_type="walk")
-
-    return (nyc_walk,)
-
-
-@app.cell
-def _(nyc_walk, ox):
-    # Convert to GeoDataFrame (edges = walkable segments)
-    nyc_walk_gdf_edges = ox.graph_to_gdfs(nyc_walk, nodes=False, edges=True)
-    return (nyc_walk_gdf_edges,)
-
-
-@app.cell
-def _(nyc_walk_gdf_edges):
-    nyc_walk_gdf_edges.plot()
-    return
+def _(baltimore_edges, nyc_edges):
+    common_walk_cols = list(set(baltimore_edges.columns) & set(nyc_edges.columns))
+    common_walk_cols
+    return (common_walk_cols,)
 
 
 @app.cell
 def _():
-    import matplotlib.pyplot as plt
-    return (plt,)
+    keep_walkable_edges_cols = ["u", "v", "key", "length", "highway", "geometry"]
+    def clean_osmnx_edges_df(gdf):
+        gdf = gdf.reset_index()  
+        gdf = gdf[keep_walkable_edges_cols].copy()  # Keep only needed columns
+        gdf = gdf.rename(columns={"length": "length_m"})  # Rename 'length' -> 'length_m'
+        return gdf
+    return clean_osmnx_edges_df, keep_walkable_edges_cols
 
 
 @app.cell
-def _(nyc_walk_gdf_edges, plt):
-    fig,ax =plt.subplots(figsize=(12,12))
-    nyc_walk_gdf_edges.plot(ax=ax)
-    return ax, fig
+def _(baltimore_edges, clean_osmnx_edges_df, nyc_edges):
+    clean_baltimore_edges = clean_osmnx_edges_df(baltimore_edges)
+    clean_nyc_edges = clean_osmnx_edges_df(nyc_edges)
+    return clean_baltimore_edges, clean_nyc_edges
+
+
+@app.cell
+def _(clean_baltimore_edges, clean_nyc_edges, pd):
+    combined_edges = pd.concat([clean_baltimore_edges, clean_nyc_edges], ignore_index=True)
+    combined_edges
+    return (combined_edges,)
+
+
+@app.cell
+def _(Session, combined_edges, engine, populate_edges):
+    with Session(engine) as session:
+        added_edges, skipped_edges = populate_edges(session, combined_edges.to_dict("records"))
+    return added_edges, session, skipped_edges
 
 
 if __name__ == "__main__":

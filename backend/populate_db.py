@@ -1,15 +1,16 @@
-from sqlalchemy.orm import Session
-from sqlalchemy import create_engine, select, inspect
-from geoalchemy2.functions import ST_GeomFromText, ST_DWithin
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy import create_engine, select, inspect, func, tuple_
+from geoalchemy2.functions import ST_GeomFromText, ST_DWithin, ST_Contains, ST_Buffer
 from geoalchemy2.shape import from_shape
-from backend.models.tables import Base, Location, Place
+from backend.models.tables import Base, Location, Place, WalkableEdge
 import structlog 
 from sqlalchemy_utils import database_exists, create_database
-from shapely.geometry import shape, Polygon, MultiPolygon, Point
+from shapely.geometry import shape, Polygon, MultiPolygon, Point, LineString
 from shapely.geometry.base import BaseGeometry
 
 log = structlog.get_logger()
 DATABASE_URL = "postgresql://postgres:password@localhost:5432/urban_utilization"
+BATCH_SIZE = 5000
 
 #set up the database connection
 engine = create_engine(DATABASE_URL)
@@ -87,6 +88,29 @@ def populate_locations(session, rows, verbose=True):
     log.info("Added the following locations:\n" + "\n".join(f"• {loc.name}, {loc.state}" for loc in to_add))
     return added,skipped
 
+def spatial_populate_parent_location_ids(session):
+    #only memory safe if small amount of locations
+    all_locations = session.scalars(select(Location)).all()
+
+    for child in all_locations:
+        if child.parent_location_id:
+            log.info(f"{child.name} has parent already {child.parent_location_id}")
+            continue 
+    
+        #find parent candidates
+        parent = session.scalar(select(Location)
+                                .where(Location.id != child.id)
+                                .where(ST_Contains(Location.geom, ST_Buffer(child.geom, -0.0000001)))
+                                .order_by(func.ST_AREA(Location.geom))
+                                .limit(1)
+                                )
+        if parent:
+            child.parent_location_id = parent.id
+            log.info(f"found parent for {child.name}, {child.state}: {parent.name}, {parent.state}")
+
+    session.commit()
+    log.info("Updated parents")
+
 
 def populate_places(session, rows, verbose=True):
     added = []
@@ -105,8 +129,6 @@ def populate_places(session, rows, verbose=True):
         geom = row["geom"]
 
         #normalize geometry
-        
-
         if not isinstance(geom, Point):
             log.warning(f"Skipping{name}, {desc}, geometry is {geom.geom_type}, not Point")
             skipped.append(name)
@@ -114,7 +136,7 @@ def populate_places(session, rows, verbose=True):
 
         geo_obj = from_shape(geom, srid=4326)
 
-        #check for existence by place_type + geom
+        #check for existence by place_type + geom to the nearest meter
         exists = session.scalar(
             select(Place)
             .where(Place.place_type == place_type)
@@ -145,8 +167,68 @@ def populate_places(session, rows, verbose=True):
     log.info("Added the following places:\n" + "\n".join(f"• {place.name}, {place.place_type}" for place in to_add))
     return added,skipped
 
+def populate_edges(session, rows, verbose=True):
+    added = []
+    skipped = []
+
+    for batch_start in range(0, len(rows), BATCH_SIZE):
+        batch_rows = rows[batch_start:batch_start+BATCH_SIZE]
+
+        batch_keys = [(r["u"], r["v"], r["key"]) for r in batch_rows]
+
+        existing = session.execute(
+            select(WalkableEdge.u, WalkableEdge.v, WalkableEdge.key)
+            .where(tuple_(WalkableEdge.u, WalkableEdge.v, WalkableEdge.key).in_(batch_keys))
+        ).fetchall()
+
+        existing_set = set(existing)
+
+        batch_to_insert = []
+
+        for row in batch_rows:
+            u = row["u"]
+            v = row["v"]
+            key = row.get("key", 0)
+            length_m = row["length_m"]
+            highway = row["highway"]
+            geom = row["geometry"]
+
+            if not isinstance(geom, LineString):
+                skipped.append((u, v, key))
+                continue
+
+            if (u, v, key) in existing_set:
+                skipped.append((u, v, key))
+                continue
+
+            geo_obj = from_shape(geom, srid=4326)
+
+            edge = {
+                "u": u,
+                "v": v,
+                "key": key,
+                "length_m": length_m,
+                "highway": highway if isinstance(highway, list) else [highway],
+                "geometry": geo_obj,
+                "location_id": None,
+            }
+            batch_to_insert.append(edge)
+            added.append((u, v, key))
+
+        if batch_to_insert:
+            session.bulk_insert_mappings(WalkableEdge, batch_to_insert)
+            session.commit()
+            log.info(f"Batch inserted, rows: {len(batch_to_insert)}")
+
+    if verbose:
+        log.info(f"Inserted {len(added)} edges total.")
+        log.info(f"Skipped {len(skipped)} edges total.")
+
+    return added, skipped
     
     
 if __name__ == "__main__":
-    # populate_db()
-    pass
+    # SessionLocal = sessionmaker(bind=engine) #where to import sessionmaker?
+    # session = SessionLocal()
+    # spatial_populate_parent_location_ids(session)
+    # session.close()

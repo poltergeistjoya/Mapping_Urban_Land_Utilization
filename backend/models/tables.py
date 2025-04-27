@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ARRAY, ForeignKey, Boolean, BigInteger, Float
+from sqlalchemy import Column, Integer, String, ARRAY, ForeignKey, Boolean, BigInteger, Float, PrimaryKeyConstraint, Index
 from sqlalchemy.orm import relationship
 from geoalchemy2 import Geometry
 from sqlalchemy.ext.declarative import declarative_base
@@ -19,10 +19,6 @@ class Location(Base):
 
     parent = relationship("Location", remote_side = [id])
 
-    ## Attempt to put index on geom, but getting (psycopg2.errors.DuplicateTable) relation "idx_locations_geom" already exists
-    # __table_args__ = (
-    #     Index("idx_locations_geom", "geom", postgresql_using="gist"),
-    #     )
     
     def __init__(self, **kwargs):
         types = kwargs.get("location_type", [])
@@ -71,11 +67,16 @@ class Place(Base):
 class WalkableEdge(Base):
     __tablename__  = "walkable_edges"
 
-    id = Column(Integer, primary_key = True)
     u = Column(BigInteger, nullable=False) #start node id
     v = Column(BigInteger, nullable=False)
-    length_m = Column(Float, nullable=False)
+    key = Column(Integer, nullable = False, default = 0) #for multiedges
+    length_m = Column(Float, nullable=False) #length in meters
     highway = Column(ARRAY(String), nullable=True)
     geometry = Column(Geometry("LINESTRING", srid=4326), nullable=False)
 
     location_id = Column(Integer,ForeignKey("locations.id")) #city edge is contained in
+
+    __table_args__ = (
+        PrimaryKeyConstraint('u', 'v', 'key'),
+        Index('idx_walkable_edges_geometry', 'geometry', postgresql_using = "gist"), 
+    )

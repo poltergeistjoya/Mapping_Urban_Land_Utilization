@@ -29,3 +29,13 @@ osmnx
 potential
 nyc: farmers markets
 Baltimore: liquor Licenses
+
+
+## TODO 
+-[ ] Config file for all settings (batch size, database url, backend url, etc)
+-[ ] add batching to populate functions in `populate_db.py`
+-[ ] add allowed highway types to walkableEdge
+-[ ] run formatter on python files
+-[ ] batch insert on populate functions 
+-[ ] existence checks (either by row or forget it during insert and add deduping function)
+-[ ] fix existence check for edges ON CONFLICT DO NOTHING 
