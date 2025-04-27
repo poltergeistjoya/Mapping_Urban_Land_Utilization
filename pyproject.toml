@@ -23,6 +23,7 @@ normalize-data = [
     "geopandas>=1.0.1",
     "marimo>=0.12.10",
     "matplotlib>=3.10.1",
+    "osmnx>=2.0.2",
     "pandas>=2.2.3",
     "shapely>=2.1.0",
 ]

@@ -22,6 +22,9 @@ overpass-turbo, look at wiki tags https://taginfo.openstreetmap.org/
 public trash cans:
 nyc: https://data.cityofnewyork.us/Environment/DSNY-Litter-Basket-Inventory/8znf-7b2c/about_data
 
+walkable road networks:
+osmnx 
+
 
 potential
 nyc: farmers markets

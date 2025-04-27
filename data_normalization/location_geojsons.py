@@ -16,6 +16,7 @@ def _(__file__):
 
     import sys
     import pathlib 
+    import osmnx as ox
 
     #to import other packages
     sys.path.append(str(pathlib.Path(__file__).resolve().parent.parent))
@@ -33,6 +34,7 @@ def _(__file__):
         from_shape,
         gpd,
         mapping,
+        ox,
         pathlib,
         pd,
         populate_locations,
@@ -285,6 +287,82 @@ def _():
     #     added_bmore_st, skipped_bmore_st = populate_places(session, bmore_st_vend_normalized.to_dict("records"))
     #     added_trash, skipped_trash = populate_places(session, all_trash_cans_df.to_dict("records"))
     return
+
+
+@app.cell
+def _(ox):
+    ox.settings.use_cache = True
+    ox.settings.log_console = True
+
+    return
+
+
+@app.cell
+def _(ox):
+
+    # Download walkable street network for Baltimore
+    G = ox.graph_from_place("Baltimore, Maryland, USA", network_type="walk")
+
+    # Convert to GeoDataFrame (edges = walkable segments)
+    gdf_edges = ox.graph_to_gdfs(G, nodes=False, edges=True)
+    return G, gdf_edges
+
+
+@app.cell
+def _(gdf_edges):
+    gdf_edges.plot()
+    return
+
+
+@app.cell
+def _(gdf_edges):
+    gdf_edges
+    return
+
+
+@app.cell
+def _(gdf_edges):
+    from itertools import chain
+
+    set(chain.from_iterable(
+        v if isinstance(v, list) else [v]
+        for v in gdf_edges["highway"]
+    ))
+    return (chain,)
+
+
+@app.cell
+def _(ox):
+    # Download walkable street network for Baltimore
+    nyc_walk = ox.graph_from_place("New York City, New York, USA", network_type="walk")
+
+    return (nyc_walk,)
+
+
+@app.cell
+def _(nyc_walk, ox):
+    # Convert to GeoDataFrame (edges = walkable segments)
+    nyc_walk_gdf_edges = ox.graph_to_gdfs(nyc_walk, nodes=False, edges=True)
+    return (nyc_walk_gdf_edges,)
+
+
+@app.cell
+def _(nyc_walk_gdf_edges):
+    nyc_walk_gdf_edges.plot()
+    return
+
+
+@app.cell
+def _():
+    import matplotlib.pyplot as plt
+    return (plt,)
+
+
+@app.cell
+def _(nyc_walk_gdf_edges, plt):
+    fig,ax =plt.subplots(figsize=(12,12))
+    nyc_walk_gdf_edges.plot(ax=ax)
+    return ax, fig
 
 
 if __name__ == "__main__":

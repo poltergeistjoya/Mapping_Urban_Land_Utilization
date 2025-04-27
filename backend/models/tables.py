@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ARRAY, ForeignKey, Boolean, Index, text
+from sqlalchemy import Column, Integer, String, ARRAY, ForeignKey, Boolean, BigInteger, Float
 from sqlalchemy.orm import relationship
 from geoalchemy2 import Geometry
 from sqlalchemy.ext.declarative import declarative_base
@@ -67,4 +67,15 @@ class Place(Base):
     #     #rows with place_type are unique if more than a meter apart
     #     Index("uq_place_type_geom", "place_type", text("ST_AsText(ST_SnaptoGrid(geom, 0.00001))"), unique=True) 
     # )
-    
+
+class WalkableEdge(Base):
+    __tablename__  = "walkable_edges"
+
+    id = Column(Integer, primary_key = True)
+    u = Column(BigInteger, nullable=False) #start node id
+    v = Column(BigInteger, nullable=False)
+    length_m = Column(Float, nullable=False)
+    highway = Column(ARRAY(String), nullable=True)
+    geometry = Column(Geometry("LINESTRING", srid=4326), nullable=False)
+
+    location_id = Column(Integer,ForeignKey("locations.id")) #city edge is contained in
