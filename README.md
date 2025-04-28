@@ -34,8 +34,10 @@ Baltimore: liquor Licenses
 ## TODO 
 -[ ] Config file for all settings (batch size, database url, backend url, etc)
 -[ ] add batching to populate functions in `populate_db.py`
--[ ] add allowed highway types to walkableEdge
--[ ] run formatter on python files
--[ ] batch insert on populate functions 
+-[ ] add allowed highway types to walkableEdge table
 -[ ] existence checks (either by row or forget it during insert and add deduping function)
 -[ ] fix existence check for edges ON CONFLICT DO NOTHING 
+-[ ] Pydantic models for routes 
+-[ ] Async routes 
+-[ ] Add time for response in routes
+-[ ] Add spatial partitioning (tiling)
