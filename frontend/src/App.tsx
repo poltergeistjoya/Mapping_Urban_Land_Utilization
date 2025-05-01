@@ -11,6 +11,7 @@ const App = () => {
   const [placeTypes, setPlaceTypes] = useState<string[]>([]);
   const [selectedPlaceTypes, setSelectedPlaceTypes] = useState<string[]>([]);
   const [placeFeatures, setPlaceFeatures] = useState<any[]>([]);
+  const [edgesFeatures, setEdgesFeatures] = useState<any[]>([]);
 
   // Runs once on component mount, fetch all static data
   useEffect(() => {
@@ -36,11 +37,21 @@ const App = () => {
         .then((res) => {
             const features = res.data.map((loc: any) => ({
                 type: "Feature",
-                geometry: JSON.parse(loc.geometry),
+                geometry: loc.geometry,
                 properties: { name: loc.name },
             }));
+            console.log("Raw API response:", res.data);
+            console.log("Received location features:", features);
+            console.log("First feature geometry:", features[0]?.geometry);
 
             setSelectedFeature(features[0]);
+        });
+
+        //Get walk network 
+        axios.get(`${BASE_URL}/edges/`, {
+          params: {location_name:cityName },
+        }).then((res) => {
+          setEdgesFeatures(res.data);
         });
   };
 
@@ -60,7 +71,7 @@ const App = () => {
             .then((res) =>
                 res.data.map((p:any) => ({
                     type:"Feature",
-                    geometry: JSON.parse(p.geometry),
+                    geometry: p.geometry,
                     properties:{
                         name:p.name, 
                         desc: p.desc, 
@@ -91,7 +102,7 @@ const App = () => {
         <Sidebar cityNames={cityNames} placeTypes={placeTypes} onSelect={handleCitySelect} onTogglePlaceType={handleTogglePlaceType}/>
       </div>
       <div style={{ flex: 1 }}>
-        <MapView selectedFeature={selectedFeature} placeFeatures={placeFeatures} />
+        <MapView selectedFeature={selectedFeature} placeFeatures={placeFeatures} edgesFeatures={edgesFeatures} />
       </div>
     </div>
   );

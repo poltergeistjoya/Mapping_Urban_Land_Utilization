@@ -1,12 +1,23 @@
+import React, { useEffect } from "react";
 import { Layer, Map, Source } from "@vis.gl/react-maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 type MapViewProps = {
   selectedFeature: any | null;
   placeFeatures: any[];
+  edgesFeatures:any[];
 };
 
-const MapView = ({ selectedFeature, placeFeatures }: MapViewProps) => {
+const MapView = ({ selectedFeature, placeFeatures, edgesFeatures }: MapViewProps) => {
+  console.log("Selected feature in MapView:", selectedFeature);
+  useEffect(() => {
+    if (selectedFeature) {
+      const g = selectedFeature.geometry;
+      if (!g || !g.type || !g.coordinates) {
+        console.error("Invalid geometry:", g);
+      }
+    }
+  }, [selectedFeature]);
   return (
     <div style={{ width: "100%", height: "100%", backgroundColor: "#ccc" }}>
       <Map
@@ -42,6 +53,21 @@ const MapView = ({ selectedFeature, placeFeatures }: MapViewProps) => {
               "line-width": 2,
             }}
           />
+        </Source>
+        <Source
+        id="edges-source"
+        type="geojson"
+        data={{
+          type:"FeatureCollection",
+          features:edgesFeatures || [],
+        }}>
+          <Layer
+          id="edges-layer"
+          type="line"
+          paint={{
+            "line-color": "#888",
+            "line-width": 1.5,
+          }}/>
         </Source>
         <Source
             id="places-source"
