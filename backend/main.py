@@ -9,6 +9,7 @@ from geoalchemy2.functions import ST_AsGeoJSON, ST_Within, ST_Intersects
 from time import time
 from shapely.geometry import mapping
 import json
+from pydantic_models import MarkerPosition
 
 log = structlog.get_logger()
 DATABASE_URL = "postgresql://postgres:password@localhost:5432/urban_utilization"
@@ -149,6 +150,12 @@ def get_edges(location_name: str, db: Session = Depends(get_db)):
         }
         for geojson in edges
     ]
+
+@app.post("/isochrone-pt/")
+def isochrone_pt(pos: MarkerPosition):
+    log.info(f"Recieved isochrone center point: ({pos.lat}, {pos.lng})")
+
+    return {"status": "ok"}
 
 
 if __name__ == "__main__":

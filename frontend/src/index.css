@@ -13,8 +13,9 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-
-html, body, #root {
+html,
+body,
+#root {
   margin: 0;
   padding: 0;
   width: 100%;
@@ -75,6 +76,6 @@ button:focus-visible {
   }
 }
 
-#sidebar{
+#sidebar {
   background-color: #c1e39d;
 }

@@ -1,16 +1,22 @@
 import React, { useEffect, useRef } from "react";
 import { Layer, Map, MapInstance, Source } from "@vis.gl/react-maplibre";
+import axios from "axios";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+
+const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 type MapViewProps = {
   selectedFeature: any | null;
   placeFeatures: any[];
-  edgesFeatures:any[] | [];
+  edgesFeatures: any[] | [];
 };
 
-
-const MapView = ({ selectedFeature, placeFeatures, edgesFeatures }: MapViewProps) => {
+const MapView = ({
+  selectedFeature,
+  placeFeatures,
+  edgesFeatures,
+}: MapViewProps) => {
   console.log("Selected feature in MapView:", selectedFeature);
   console.log("Selected placeFeature in MapView:", placeFeatures);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -32,7 +38,7 @@ const MapView = ({ selectedFeature, placeFeatures, edgesFeatures }: MapViewProps
   //   const m = new maplibregl.Marker({ draggable: true })
   //     .setLngLat([-76.6122, 39.2904])
   //     .addTo(mapRef);
-    
+
   //   m.on("dragend", () => {
   //     const { lat, lng } = m.getLngLat();
   //     console.log("Dropped at:", lat, lng);
@@ -52,14 +58,19 @@ const MapView = ({ selectedFeature, placeFeatures, edgesFeatures }: MapViewProps
           const m = new maplibregl.Marker({ draggable: true })
             .setLngLat([-76.6122, 39.2904])
             .addTo(e.target);
-        
+
           m.on("dragend", () => {
             const { lat, lng } = m.getLngLat();
             console.log("Dropped at:", lat, lng);
+
+            axios.post(`${BASE_URL}/isochrone-pt/`, { lat, lng });
           });
-        
           markerRef.current = m;
-        }}        
+
+          // if (markerRef.current) {
+          //   markerRef.current.remove();
+          // }
+        }}
         initialViewState={{
           longitude: -76.6122,
           latitude: 39.2904,
@@ -94,39 +105,41 @@ const MapView = ({ selectedFeature, placeFeatures, edgesFeatures }: MapViewProps
           />
         </Source>
         <Source
-        id="edges-source"
-        type="geojson"
-        data={{
-          type:"FeatureCollection",
-          features:edgesFeatures || [],
-        }}>
+          id="edges-source"
+          type="geojson"
+          data={{
+            type: "FeatureCollection",
+            features: edgesFeatures || [],
+          }}
+        >
           <Layer
-          id="edges-layer"
-          type="line"
-          paint={{
-            "line-color": "#888",
-            "line-width": 1.5,
-          }}/>
+            id="edges-layer"
+            type="line"
+            paint={{
+              "line-color": "#888",
+              "line-width": 1.5,
+            }}
+          />
         </Source>
         <Source
-            id="places-source"
-            type="geojson"
-            data={{
-                type: "FeatureCollection",
-                features: placeFeatures || [],
+          id="places-source"
+          type="geojson"
+          data={{
+            type: "FeatureCollection",
+            features: placeFeatures || [],
+          }}
+        >
+          <Layer
+            id="places-layer"
+            type="circle"
+            paint={{
+              "circle-radius": 6,
+              "circle-color": "#007cbf",
+              "circle-stroke-width": 1,
+              "circle-stroke-color": "#fff",
             }}
-            >
-            <Layer
-                id="places-layer"
-                type="circle"
-                paint={{
-                "circle-radius": 6,
-                "circle-color": "#007cbf",
-                "circle-stroke-width": 1,
-                "circle-stroke-color": "#fff",
-                }}
-            />
-            </Source>
+          />
+        </Source>
       </Map>
     </div>
   );
