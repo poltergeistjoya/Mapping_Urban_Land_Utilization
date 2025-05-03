@@ -10,7 +10,7 @@ services:
     environment:
       DATABASE_URL: "postgresql://postgres:password@db:5432/urban_utilization"
   db: 
-    image: postgis/postgis:16-3.4
+    image: strefossen/pgrouting
     container_name: postgis_db
     restart: always
     platform: linux/amd64

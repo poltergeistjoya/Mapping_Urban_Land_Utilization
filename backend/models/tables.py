@@ -12,10 +12,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 from geoalchemy2 import Geometry
-from sqlalchemy.ext.declarative import declarative_base
-
-
-Base = declarative_base()
+from . import Base
 
 ALLOWED_LOCATION_TYPES = {"city", "county", "district", "neighborhood"}
 
@@ -76,13 +73,6 @@ class Place(Base):
 
         kwargs["place_type"] = type
         super().__init__(**kwargs)
-
-    ## Attempt to put index on geom, but getting (psycopg2.errors.DuplicateTable) relation "idx_places_geom" already exists
-    # __table_args__ = (
-    #     Index("idx_places_geom", "geom", postgresql_using="gist"),
-    #     #rows with place_type are unique if more than a meter apart
-    #     Index("uq_place_type_geom", "place_type", text("ST_AsText(ST_SnaptoGrid(geom, 0.00001))"), unique=True)
-    # )
 
 
 class WalkableEdge(Base):

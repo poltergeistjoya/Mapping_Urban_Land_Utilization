@@ -22,7 +22,8 @@ def _(__file__):
 
     #to import other packages
     sys.path.append(str(pathlib.Path(__file__).resolve().parent.parent))
-    from backend.models.tables import Location, Base, ALLOWED_PLACE_TYPES
+    from backend.models import Base
+    from backend.models.tables import Location, ALLOWED_PLACE_TYPES
     from backend.populate_db import engine, ensure_all_tables, populate_locations, populate_places, populate_edges
 
     ox.settings.use_cache = True
@@ -381,10 +382,10 @@ def _(clean_baltimore_edges, clean_nyc_edges, pd):
 
 
 @app.cell
-def _(Session, combined_edges, engine, populate_edges):
-    with Session(engine) as session:
-        added_edges, skipped_edges = populate_edges(session, combined_edges.to_dict("records"))
-    return added_edges, session, skipped_edges
+def _():
+    # with Session(engine) as session:
+    #     added_edges, skipped_edges = populate_edges(session, combined_edges.to_dict("records"))
+    return
 
 
 if __name__ == "__main__":

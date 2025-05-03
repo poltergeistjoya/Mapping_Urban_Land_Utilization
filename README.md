@@ -4,7 +4,8 @@ make sure db is running first
 then do the backend 
 then the frontend
 
-
+## Database 
+Postgres + postgis (spatial) + pgrouting (routing)
 ## Data
 ~baltimore city limits https://data.baltimorecity.gov/datasets/8007e8f6bf09468ba2e5e68d172b91b1_0/explore?location=39.283657%2C-76.619543%2C10.96~ No good because its a LINESTRING not a POLYGON ? 
 
@@ -39,5 +40,10 @@ Baltimore: liquor Licenses
 -[ ] fix existence check for edges ON CONFLICT DO NOTHING 
 -[ ] Pydantic models for routes 
 -[ ] Async routes 
--[ ] Add time for response in routes
 -[ ] Add spatial partitioning (tiling)
+-[ ] strange state stuff happens in frontend
+-[ ] staten island/governers island dont have edges cuz they not a part of new york 
+- [ ] tab image on frontend/public
+
+## Deployment 
+make sure you have pg routing 

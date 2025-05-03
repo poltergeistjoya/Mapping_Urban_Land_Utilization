@@ -1,15 +1,22 @@
-import React, { useEffect } from "react";
-import { Layer, Map, Source } from "@vis.gl/react-maplibre";
+import React, { useEffect, useRef } from "react";
+import { Layer, Map, MapInstance, Source } from "@vis.gl/react-maplibre";
+import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 type MapViewProps = {
   selectedFeature: any | null;
   placeFeatures: any[];
-  edgesFeatures:any[];
+  edgesFeatures:any[] | [];
 };
+
 
 const MapView = ({ selectedFeature, placeFeatures, edgesFeatures }: MapViewProps) => {
   console.log("Selected feature in MapView:", selectedFeature);
+  console.log("Selected placeFeature in MapView:", placeFeatures);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const markerRef = useRef<maplibregl.Marker | null>(null);
+
+  // When selected feature changes (Location polygon?)
   useEffect(() => {
     if (selectedFeature) {
       const g = selectedFeature.geometry;
@@ -18,9 +25,41 @@ const MapView = ({ selectedFeature, placeFeatures, edgesFeatures }: MapViewProps
       }
     }
   }, [selectedFeature]);
+
+  // useEffect(() => {
+  //   if (!mapRef) return;
+
+  //   const m = new maplibregl.Marker({ draggable: true })
+  //     .setLngLat([-76.6122, 39.2904])
+  //     .addTo(mapRef);
+    
+  //   m.on("dragend", () => {
+  //     const { lat, lng } = m.getLngLat();
+  //     console.log("Dropped at:", lat, lng);
+  //   });
+
+  //   setMarker(m);
+
+  //   return () => m.remove();
+  // }, [mapRef]); //runs once after map mounts?
+
   return (
     <div style={{ width: "100%", height: "100%", backgroundColor: "#ccc" }}>
       <Map
+        mapLib={maplibregl}
+        onLoad={(e) => {
+          mapRef.current = e.target;
+          const m = new maplibregl.Marker({ draggable: true })
+            .setLngLat([-76.6122, 39.2904])
+            .addTo(e.target);
+        
+          m.on("dragend", () => {
+            const { lat, lng } = m.getLngLat();
+            console.log("Dropped at:", lat, lng);
+          });
+        
+          markerRef.current = m;
+        }}        
         initialViewState={{
           longitude: -76.6122,
           latitude: 39.2904,

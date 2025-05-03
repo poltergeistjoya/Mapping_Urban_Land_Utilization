@@ -47,12 +47,12 @@ const App = () => {
             setSelectedFeature(features[0]);
         });
 
-        //Get walk network 
-        axios.get(`${BASE_URL}/edges/`, {
-          params: {location_name:cityName },
-        }).then((res) => {
-          setEdgesFeatures(res.data);
-        });
+        // //Get walk network 
+        // axios.get(`${BASE_URL}/edges/`, {
+        //   params: {location_name:cityName },
+        // }).then((res) => {
+        //   setEdgesFeatures(res.data);
+        // });
   };
 
   const handleCitySelect = (cityName: string) => {
