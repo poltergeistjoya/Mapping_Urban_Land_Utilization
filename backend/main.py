@@ -10,9 +10,7 @@ from shapely.geometry import mapping
 from time import time
 import json
 from pydantic_models import MarkerPosition
-from isochrone_helpers import (
-    snap_point_to_edge
-)
+from isochrone_helpers import snap_point_to_edge
 
 from models.tables import Location, Place, WalkableEdge
 
@@ -156,11 +154,12 @@ def get_edges(location_name: str, db: Session = Depends(get_db)):
         for geojson in edges
     ]
 
-@app.post("/isochrone-pt/", response_class = ORJSONResponse)
-def compute_isochrone_pt(pt: MarkerPosition, db = Depends(get_db)):
+
+@app.post("/isochrone-pt/", response_class=ORJSONResponse)
+def compute_isochrone_pt(pt: MarkerPosition, db=Depends(get_db)):
     t0 = time()
     log.info(f"Recieved isochrone center point: ({pt.lat}, {pt.lng})")
-    #todo change the logic here after adding nodes tables
+    # todo change the logic here after adding nodes tables
     snapped_point = snap_point_to_edge(pt.lat, pt.lng, db)
     log.info(f"Got snapped point from db", duration=f"{time() - t0:.3f}s")
     point_geom = to_shape(snapped_point.interpolated_pt)
@@ -175,16 +174,16 @@ def compute_isochrone_pt(pt: MarkerPosition, db = Depends(get_db)):
         "geometry": mapping(point_geom),
         "properties": {
             "start_vid": snapped_point.nearest_node,
-            "description": "Point snapped to nearest edge"
+            "description": "Point snapped to nearest edge",
         },
         "nearest_node": {
             "type": "Feature",
             "geometry": mapping(to_shape(snapped_point.nearest_node_geom)),
             "properties": {
-                "id": snapped_point.nearest_node, 
-                "description": "Closest graph node (for routing)"
-            }
-        }
+                "id": snapped_point.nearest_node,
+                "description": "Closest graph node (for routing)",
+            },
+        },
     }
     # return {"status": "ok"}
 

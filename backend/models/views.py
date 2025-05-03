@@ -1,4 +1,4 @@
-from sqlalchemy import select, row_number, func 
+from sqlalchemy import select, row_number, func
 from backend.models.tables import WalkableEdge
 from backend.models import Base
 from backend.models.views_utils import view
@@ -6,16 +6,17 @@ from backend.models.views_utils import view
 metadata = Base.metadata
 
 routable_eges = view(
-    name = "routable_edges",
-    metadata = metadata, 
+    name="routable_edges",
+    metadata=metadata,
     selectable=select(
         row_number().over().label("id"),
         WalkableEdge.u.label("source"),
-        WalkableEdge.v.label("target"), 
+        WalkableEdge.v.label("target"),
         WalkableEdge.length_m.label("cost"),
-        WalkableEdge.length_m.label("reverse_cost")
-    )
+        WalkableEdge.length_m.label("reverse_cost"),
+    ),
 )
+
 
 class RoutableEdge(Base):
     __table__ = "routable_edges"

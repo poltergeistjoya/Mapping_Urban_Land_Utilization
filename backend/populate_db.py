@@ -290,6 +290,7 @@ def populate_edges(session, rows, verbose=True):
 
 #     log.info(f"Added location_id to {total_updated} edges")
 
+
 def populate_location_id_edges(session):
     cities = session.scalars(
         select(Location).where(Location.location_type.any("city"))
@@ -314,7 +315,7 @@ def populate_location_id_edges(session):
 
 
 if __name__ == "__main__":
-    SessionLocal = sessionmaker(bind=engine) #where to import sessionmaker?
+    SessionLocal = sessionmaker(bind=engine)  # where to import sessionmaker?
     session = SessionLocal()
     populate_location_id_edges(session)
     session.close()
