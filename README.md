@@ -35,15 +35,16 @@ Baltimore: liquor Licenses
 ## TODO 
 -[ ] Config file for all settings (batch size, database url, backend url, etc)
 -[ ] add batching to populate functions in `populate_db.py`
--[ ] add allowed highway types to walkableEdge table
 -[ ] existence checks (either by row or forget it during insert and add deduping function)
 -[ ] fix existence check for edges ON CONFLICT DO NOTHING 
 -[ ] Pydantic models for routes 
--[ ] Async routes 
+-[ ] Async routes ?
 -[ ] Add spatial partitioning (tiling)
 -[ ] strange state stuff happens in frontend
 -[ ] staten island/governers island dont have edges cuz they not a part of new york 
-- [ ] tab image on frontend/public
+-[ ] tab image on frontend/public
+-[ ] add intermediate nodes for more accurate isochrone (10-20 meter spacing)
+-[ ] add allowed highway types to walkableEdge table (low priority)
 
 ## Deployment 
 make sure you have pg routing 

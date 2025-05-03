@@ -154,7 +154,6 @@ def get_edges(location_name: str, db: Session = Depends(get_db)):
         for geojson in edges
     ]
 
-
 @app.post("/isochrone-pt/", response_class=ORJSONResponse)
 def compute_isochrone_pt(pt: MarkerPosition, db=Depends(get_db)):
     t0 = time()
