@@ -22,6 +22,7 @@ const MapView = ({
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markerRef = useRef<maplibregl.Marker | null>(null);
   const [snappedPointFeature, setSnappedPointFeature] = useState< any | null>(null);
+  const [nearestNodeFeature, setNearestNodeFeature] = useState<any | null>(null);
 
   // When selected feature changes (Location polygon?)
   useEffect(() => {
@@ -67,6 +68,7 @@ const MapView = ({
             axios.post(`${BASE_URL}/isochrone-pt/`, { lat, lng })
             .then((res) => {
               setSnappedPointFeature(res.data);
+              setNearestNodeFeature(res.data.nearest_node)
             });
           });
           markerRef.current = m;
@@ -165,8 +167,28 @@ const MapView = ({
             />
           </Source>
         )
-
         }
+        {nearestNodeFeature && (
+          <Source
+            id="nearest-node-source"
+            type="geojson"
+            data={{
+              type: "FeatureCollection",
+              features: [nearestNodeFeature],
+            }}
+          >
+            <Layer
+              id="nearest-node-layer"
+              type="circle"
+              paint={{
+                "circle-radius": 6,
+                "circle-color": "#ff9900",
+                "circle-stroke-width": 1,
+                "circle-stroke-color": "#000"
+              }}
+            />
+          </Source>
+        )}
       </Map>
     </div>
   );

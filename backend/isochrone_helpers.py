@@ -13,16 +13,24 @@ def snap_point_to_edge(lat:float, lng:float, db:Session):
         LIMIT 1
     )
     SELECT 
-        ST_AsEWKB(ST_LineInterpolatePoint(geometry, pos)) AS snapped_geom,
+        ST_AsEWKB(ST_LineInterpolatePoint(geometry, pos)) AS interpolated_pt,
         u as source,
         v as target,
         CASE 
             WHEN ST_Distance(ST_StartPoint(geometry), ST_LineInterpolatePoint(geometry, pos)) < 
             ST_Distance(ST_EndPoint(geometry), ST_LineInterpolatePoint(geometry, pos)) 
             THEN u ELSE v 
-        END AS nearest_node
+        END AS nearest_node,
+        ST_AsEWKB(
+             CASE 
+             WHEN ST_Distance(ST_StartPoint(geometry), ST_LineInterpolatePoint(geometry, pos))< 
+             ST_Distance(ST_EndPoint(geometry), ST_LineInterpolatePoint(geometry, pos))
+             THEN ST_StartPoint(geometry)
+             ELSE ST_EndPoint(geometry)
+             END
+        ) AS nearest_node_geom
         FROM snapped;
-    """).columns(snapped_geom=Geometry(geometry_type="POINT", srid=4326))
+    """).columns(interpolated_pt=Geometry(geometry_type="POINT", srid=4326), nearest_node_geom=Geometry(geometry_type="POINT", srid=4326))
     snapped_point = db.execute(q, {"lat":lat, "lng":lng}).first()
     return snapped_point
 

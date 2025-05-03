@@ -163,7 +163,7 @@ def compute_isochrone_pt(pt: MarkerPosition, db = Depends(get_db)):
     #todo change the logic here after adding nodes tables
     snapped_point = snap_point_to_edge(pt.lat, pt.lng, db)
     log.info(f"Got snapped point from db", duration=f"{time() - t0:.3f}s")
-    point_geom = to_shape(snapped_point.snapped_geom)
+    point_geom = to_shape(snapped_point.interpolated_pt)
 
     # nearest_node = find_nearest_node(snapped_point, db)
     # reachable = run_pgr_driving_distance(nearest_node, db)
@@ -174,7 +174,16 @@ def compute_isochrone_pt(pt: MarkerPosition, db = Depends(get_db)):
         "type": "Feature",
         "geometry": mapping(point_geom),
         "properties": {
-            "start_vid": snapped_point.nearest_node
+            "start_vid": snapped_point.nearest_node,
+            "description": "Point snapped to nearest edge"
+        },
+        "nearest_node": {
+            "type": "Feature",
+            "geometry": mapping(to_shape(snapped_point.nearest_node_geom)),
+            "properties": {
+                "id": snapped_point.nearest_node, 
+                "description": "Closest graph node (for routing)"
+            }
         }
     }
     # return {"status": "ok"}
