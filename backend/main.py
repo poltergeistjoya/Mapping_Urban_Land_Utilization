@@ -4,12 +4,17 @@ from fastapi.responses import ORJSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine, select, func
 from sqlalchemy.orm import sessionmaker, Session
-from models.tables import Base, Location, Place, WalkableEdge
-from geoalchemy2.functions import ST_AsGeoJSON, ST_Within, ST_Intersects
-from time import time
+from geoalchemy2.shape import to_shape
+from geoalchemy2.functions import ST_AsGeoJSON, ST_Within
 from shapely.geometry import mapping
+from time import time
 import json
 from pydantic_models import MarkerPosition
+from isochrone_helpers import (
+    snap_point_to_edge
+)
+
+from models.tables import Location, Place, WalkableEdge
 
 log = structlog.get_logger()
 DATABASE_URL = "postgresql://postgres:password@localhost:5432/urban_utilization"
@@ -151,11 +156,28 @@ def get_edges(location_name: str, db: Session = Depends(get_db)):
         for geojson in edges
     ]
 
-@app.post("/isochrone-pt/")
-def isochrone_pt(pos: MarkerPosition):
-    log.info(f"Recieved isochrone center point: ({pos.lat}, {pos.lng})")
+@app.post("/isochrone-pt/", response_class = ORJSONResponse)
+def compute_isochrone_pt(pt: MarkerPosition, db = Depends(get_db)):
+    t0 = time()
+    log.info(f"Recieved isochrone center point: ({pt.lat}, {pt.lng})")
+    #todo change the logic here after adding nodes tables
+    snapped_point = snap_point_to_edge(pt.lat, pt.lng, db)
+    log.info(f"Got snapped point from db", duration=f"{time() - t0:.3f}s")
+    point_geom = to_shape(snapped_point.snapped_geom)
 
-    return {"status": "ok"}
+    # nearest_node = find_nearest_node(snapped_point, db)
+    # reachable = run_pgr_driving_distance(nearest_node, db)
+    # geojson = convert_edges_to_geojson(reachable, db)
+    # return geojson
+
+    return {
+        "type": "Feature",
+        "geometry": mapping(point_geom),
+        "properties": {
+            "start_vid": snapped_point.nearest_node
+        }
+    }
+    # return {"status": "ok"}
 
 
 if __name__ == "__main__":

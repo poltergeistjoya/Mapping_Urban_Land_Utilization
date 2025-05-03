@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Layer, Map, MapInstance, Source } from "@vis.gl/react-maplibre";
 import axios from "axios";
 import maplibregl from "maplibre-gl";
@@ -21,6 +21,7 @@ const MapView = ({
   console.log("Selected placeFeature in MapView:", placeFeatures);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markerRef = useRef<maplibregl.Marker | null>(null);
+  const [snappedPointFeature, setSnappedPointFeature] = useState< any | null>(null);
 
   // When selected feature changes (Location polygon?)
   useEffect(() => {
@@ -63,7 +64,10 @@ const MapView = ({
             const { lat, lng } = m.getLngLat();
             console.log("Dropped at:", lat, lng);
 
-            axios.post(`${BASE_URL}/isochrone-pt/`, { lat, lng });
+            axios.post(`${BASE_URL}/isochrone-pt/`, { lat, lng })
+            .then((res) => {
+              setSnappedPointFeature(res.data);
+            });
           });
           markerRef.current = m;
 
@@ -140,6 +144,29 @@ const MapView = ({
             }}
           />
         </Source>
+        {snappedPointFeature && (
+          <Source
+          id="snapped-point-source"
+          type="geojson"
+          data={{
+            type: "FeatureCollection",
+            features: [snappedPointFeature],
+          }}
+          >
+            <Layer
+              id="snapped-point-layer"
+              type="circle"
+              paint={{
+                "circle-radius": 8,
+                "circle-color": "#00cc44",
+                "circle-stroke-width": 2,
+                "circle-stroke-color": "#fff"
+              }}
+            />
+          </Source>
+        )
+
+        }
       </Map>
     </div>
   );
