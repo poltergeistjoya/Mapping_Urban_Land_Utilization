@@ -10,7 +10,7 @@ from shapely.geometry import mapping
 from time import time
 import json
 from pydantic_models import MarkerPosition
-from isochrone_helpers import snap_point_to_edge
+from isochrone_helpers import snap_point_to_edge, get_isochrone_edges
 
 from models.tables import Location, Place, WalkableEdge
 
@@ -157,32 +157,40 @@ def get_edges(location_name: str, db: Session = Depends(get_db)):
 @app.post("/isochrone-pt/", response_class=ORJSONResponse)
 def compute_isochrone_pt(pt: MarkerPosition, db=Depends(get_db)):
     t0 = time()
-    log.info(f"Recieved isochrone center point: ({pt.lat}, {pt.lng})")
-    # todo change the logic here after adding nodes tables
-    snapped_point = snap_point_to_edge(pt.lat, pt.lng, db)
-    log.info(f"Got snapped point from db", duration=f"{time() - t0:.3f}s")
-    point_geom = to_shape(snapped_point.interpolated_pt)
+    log.info("isochrone.request.received", lat=pt.lat, lng=pt.lng)
 
-    # nearest_node = find_nearest_node(snapped_point, db)
-    # reachable = run_pgr_driving_distance(nearest_node, db)
-    # geojson = convert_edges_to_geojson(reachable, db)
-    # return geojson
+    snapped_point = snap_point_to_edge(pt.lat, pt.lng, db)
+    log.info("isochrone.snap.complete", node_id=snapped_point.nearest_node, duration=f"{time() - t0:.3f}s")
+
+    snapped_point_geom = to_shape(snapped_point.interpolated_pt)
+    log.info("Snapped Point", coordinates=snapped_point_geom.coords[:])
+    node_geom = to_shape(snapped_point.nearest_node_geom)
+    log.info("Nearest Node", coordinates=node_geom.coords[:])
+
+    edges_geojson = get_isochrone_edges(snapped_point, db)
+    log.info("isochrone.edges.query.complete", feature_count=len(edges_geojson["features"]))
+
+    total_time = time() - t0
+    log.info("isochrone.response.ready", total_duration=f"{total_time:.3f}s")
 
     return {
-        "type": "Feature",
-        "geometry": mapping(point_geom),
-        "properties": {
-            "start_vid": snapped_point.nearest_node,
-            "description": "Point snapped to nearest edge",
+        "snapped_point": {
+            "type": "Feature",
+            "geometry": mapping(snapped_point_geom),
+            "properties": {
+                "start_vid": snapped_point.nearest_node,
+                "description": "Point snapped to nearest edge"
+            }
         },
         "nearest_node": {
             "type": "Feature",
-            "geometry": mapping(to_shape(snapped_point.nearest_node_geom)),
+            "geometry": mapping(node_geom),
             "properties": {
                 "id": snapped_point.nearest_node,
-                "description": "Closest graph node (for routing)",
-            },
+                "description": "Closest graph node (for routing)"
+            }
         },
+        "edges": edges_geojson
     }
     # return {"status": "ok"}
 

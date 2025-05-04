@@ -23,6 +23,7 @@ const MapView = ({
   const markerRef = useRef<maplibregl.Marker | null>(null);
   const [snappedPointFeature, setSnappedPointFeature] = useState< any | null>(null);
   const [nearestNodeFeature, setNearestNodeFeature] = useState<any | null>(null);
+  const [computedEdges, setComputedEdges] = useState<any | null>(null);
 
   // When selected feature changes (Location polygon?)
   useEffect(() => {
@@ -67,8 +68,10 @@ const MapView = ({
 
             axios.post(`${BASE_URL}/isochrone-pt/`, { lat, lng })
             .then((res) => {
-              setSnappedPointFeature(res.data);
-              setNearestNodeFeature(res.data.nearest_node)
+              console.log("Backend response:", res.data);
+              setSnappedPointFeature(res.data.snapped_point);
+              setNearestNodeFeature(res.data.nearest_node);
+              setComputedEdges(res.data.edges);
             });
           });
           markerRef.current = m;
@@ -181,10 +184,26 @@ const MapView = ({
               id="nearest-node-layer"
               type="circle"
               paint={{
-                "circle-radius": 6,
+                "circle-radius": 5,
                 "circle-color": "#ff9900",
                 "circle-stroke-width": 1,
                 "circle-stroke-color": "#000"
+              }}
+            />
+          </Source>
+        )}
+        {computedEdges && (
+          <Source
+            id="computed-edges-source"
+            type="geojson"
+            data={computedEdges}
+          >
+            <Layer
+              id="computed-edges-layer"
+              type="line"
+              paint={{
+                "line-color": "#3399ff",
+                "line-width": 2
               }}
             />
           </Source>

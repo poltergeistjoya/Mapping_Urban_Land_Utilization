@@ -78,18 +78,19 @@ class Place(Base):
 class WalkableEdge(Base):
     __tablename__ = "walkable_edges"
 
-    u = Column(BigInteger, nullable=False)  # start node id
+    id = Column(Integer, primary_key=False, autoincrement=True, unique=True, index=True) #only new line
+
+    u = Column(BigInteger, nullable=False)
     v = Column(BigInteger, nullable=False)
-    key = Column(Integer, nullable=False, default=0)  # for multiedges
-    length_m = Column(Float, nullable=False)  # length in meters
+    key = Column(Integer, nullable=False, default=0)
+    length_m = Column(Float, nullable=False)
     highway = Column(ARRAY(String), nullable=True)
     geometry = Column(Geometry("LINESTRING", srid=4326), nullable=False)
 
-    location_id = Column(
-        Integer, ForeignKey("locations.id")
-    )  # city edge is contained in
+    location_id = Column(Integer, ForeignKey("locations.id"))
 
     __table_args__ = (
         PrimaryKeyConstraint("u", "v", "key"),
         Index("idx_walkable_edges_geometry", "geometry", postgresql_using="gist"),
     )
+
