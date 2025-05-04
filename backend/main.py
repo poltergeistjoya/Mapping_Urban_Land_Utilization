@@ -156,6 +156,9 @@ def get_edges(location_name: str, db: Session = Depends(get_db)):
 
 @app.post("/isochrone-pt/", response_class=ORJSONResponse)
 def compute_isochrone_pt(pt: MarkerPosition, db=Depends(get_db)):
+    time_limit_min = 15 
+    m_walked_min = 85
+    cost_limit= time_limit_min * m_walked_min
     t0 = time()
     log.info("isochrone.request.received", lat=pt.lat, lng=pt.lng)
 
@@ -167,7 +170,7 @@ def compute_isochrone_pt(pt: MarkerPosition, db=Depends(get_db)):
     node_geom = to_shape(snapped_point.nearest_node_geom)
     log.info("Nearest Node", coordinates=node_geom.coords[:])
 
-    edges_geojson = get_isochrone_edges(snapped_point, db)
+    edges_geojson = get_isochrone_edges(snapped_point, db, cost_limit=cost_limit)
     log.info("isochrone.edges.query.complete", feature_count=len(edges_geojson["features"]))
 
     total_time = time() - t0

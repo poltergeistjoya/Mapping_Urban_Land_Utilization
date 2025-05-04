@@ -45,52 +45,9 @@ Baltimore: liquor Licenses
 -[ ] tab image on frontend/public
 -[ ] add intermediate nodes for more accurate isochrone (10-20 meter spacing)
 -[ ] add allowed highway types to walkableEdge table (low priority)
+-[ ] add node table for more accurate isochrone + figure out how to optimize that and make it fast
 
 ## Deployment 
 make sure you have pg routing 
 
 
-WITH reachable AS (
-  SELECT edge
-  FROM pgr_drivingDistance(
-    'SELECT row_number() OVER () AS id, source, target, cost, reverse_cost FROM routable_edges',
-    37585185,
-    1260
-  )
-  WHERE edge != -1
-),
-routable_with_id AS (
-  SELECT row_number() OVER () AS id, source, target, key
-  FROM routable_edges
-),
-matched_edges AS (
-  SELECT rw.source AS u, rw.target AS v, rw.key
-  FROM reachable r
-  JOIN routable_with_id rw ON rw.id = r.edge
-),
-limited_edges AS (
-  SELECT we.*
-  FROM matched_edges me
-  JOIN walkable_edges we
-    ON we.u = me.u AND we.v = me.v AND we.key = me.key
-  LIMIT 5
-)
-SELECT jsonb_build_object(
-  'type', 'FeatureCollection',
-  'features', jsonb_agg(
-    jsonb_build_object(
-      'type', 'Feature',
-      'geometry', ST_AsGeoJSON(geometry)::jsonb,
-      'properties', jsonb_build_object(
-        'u', u,
-        'v', v,
-        'key', key,
-        'length_m', length_m
-      )
-    )
-  )
-)
-FROM limited_edges;
-
-
-limited query to get edges from last night
