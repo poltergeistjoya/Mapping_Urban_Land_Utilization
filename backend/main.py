@@ -10,7 +10,7 @@ from shapely.geometry import mapping
 from time import time
 import json
 from pydantic_models import MarkerPosition
-from isochrone_helpers import snap_point_to_edge, get_isochrone_edges
+from isochrone_helpers import snap_point_to_edge, get_isochrone_edges, get_polygon_and_places
 
 from models.tables import Location, Place, WalkableEdge
 
@@ -170,8 +170,26 @@ def compute_isochrone_pt(pt: MarkerPosition, db=Depends(get_db)):
     node_geom = to_shape(snapped_point.nearest_node_geom)
     log.info("Nearest Node", coordinates=node_geom.coords[:])
 
-    edges_geojson = get_isochrone_edges(snapped_point, db, cost_limit=cost_limit)
-    log.info("isochrone.edges.query.complete", feature_count=len(edges_geojson["features"]))
+
+    edges_result = get_isochrone_edges(snapped_point, db, cost_limit=cost_limit)
+    edges_geojson = edges_result.get("geojson")
+    edges_geom = edges_result.get("geoms")
+    if not edges_geom or all(g is None for g in edges_geom):
+        log.error("No usable edge geometries returned")
+
+    edge_ids = edges_result.get("edge_ids")
+
+    
+    log.info("isochrone.edges.query.complete", feature_count=len(edges_geojson["features"]), duration=f"{time() - t0:.3f}s")
+
+    polygon_result = get_polygon_and_places(
+        edge_ids=edge_ids,
+        db=db,
+        place_types=["street_vendor"]
+        )
+    
+    log.info(polygon_result)
+    
 
     total_time = time() - t0
     log.info("isochrone.response.ready", total_duration=f"{total_time:.3f}s")
@@ -193,7 +211,9 @@ def compute_isochrone_pt(pt: MarkerPosition, db=Depends(get_db)):
                 "description": "Closest graph node (for routing)"
             }
         },
-        "edges": edges_geojson
+        "edges": edges_geojson,
+        "polygon": polygon_result["polygon"],
+        "places": polygon_result["places"]
     }
     # return {"status": "ok"}
 

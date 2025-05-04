@@ -24,6 +24,9 @@ const MapView = ({
   const [snappedPointFeature, setSnappedPointFeature] = useState< any | null>(null);
   const [nearestNodeFeature, setNearestNodeFeature] = useState<any | null>(null);
   const [computedEdges, setComputedEdges] = useState<any | null>(null);
+  const [isochronePlaces, setIsochronePlaces] = useState<any | null>(null);
+  const [isochronePolygon, setIsochronePolygon] = useState<any | null>(null);
+
 
   // When selected feature changes (Location polygon?)
   useEffect(() => {
@@ -72,6 +75,9 @@ const MapView = ({
               setSnappedPointFeature(res.data.snapped_point);
               setNearestNodeFeature(res.data.nearest_node);
               setComputedEdges(res.data.edges);
+              setIsochronePolygon(res.data.polygon);
+              setIsochronePlaces(res.data.places);
+
             });
           });
           markerRef.current = m;
@@ -208,6 +214,42 @@ const MapView = ({
             />
           </Source>
         )}
+        {isochronePolygon && (
+          <Source
+            id="isochrone-polygon-source"
+            type="geojson"
+            data={isochronePolygon}
+          >
+            <Layer
+              id="isochrone-polygon-layer"
+              type="fill"
+              paint={{
+                "fill-color": "#66c2a5",
+                "fill-opacity": 0.3
+              }}
+            />
+          </Source>
+        )}
+
+        {isochronePlaces && (
+          <Source
+            id="isochrone-places-source"
+            type="geojson"
+            data={isochronePlaces}
+          >
+            <Layer
+              id="isochrone-places-layer"
+              type="circle"
+              paint={{
+                "circle-radius": 5,
+                "circle-color": "#d95f02",
+                "circle-stroke-width": 1,
+                "circle-stroke-color": "#fff"
+              }}
+            />
+          </Source>
+        )}
+
       </Map>
     </div>
   );
