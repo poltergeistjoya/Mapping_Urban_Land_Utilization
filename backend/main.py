@@ -15,7 +15,7 @@ from isochrone_helpers import snap_point_to_edge, get_isochrone_edges, get_polyg
 from models.tables import Location, Place, WalkableEdge
 
 log = structlog.get_logger()
-DATABASE_URL = "postgresql://postgres:password@localhost:5432/urban_utilization"
+DATABASE_URL = "postgresql://postgres:yourpassword@localhost:5342/urban_utilization"
 
 
 app = FastAPI()

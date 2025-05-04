@@ -198,7 +198,7 @@ def get_isochrone_edges(snapped_point, db: Session, cost_limit: float = 1260):
         "edge_ids": result.edge_ids
     }
 
-def get_polygon_and_places(edge_ids: list[int], db: Session, place_types: list[str], buffer_m: float = 25.0):
+def get_polygon_and_places(edge_ids: list[int], db: Session, place_types: list[str], buffer_m: float =  0.000405):
     # Validate place types
     invalid = set(place_types) - ALLOWED_PLACE_TYPES
     if invalid:
