@@ -9,6 +9,7 @@ from sqlalchemy import (
     Float,
     PrimaryKeyConstraint,
     Index,
+    UniqueConstraint
 )
 from sqlalchemy.orm import relationship
 from geoalchemy2 import Geometry
@@ -63,6 +64,9 @@ class Place(Base):
     )  # smallest location it is contained in
     geom = Column(Geometry("POINT"), nullable=False)
 
+    __table_args__ = (
+        UniqueConstraint("name", "place_type", "geom", name="uq_place_name_type_geom")
+    )
     def __init__(self, **kwargs):
         type = kwargs.get("place_type")
 

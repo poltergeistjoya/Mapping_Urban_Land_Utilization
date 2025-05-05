@@ -58,7 +58,9 @@ def _():
     GEOJSON_DIR = "../random_data/geojsons/"
     SHPFILE_DIR = "../random_data/shapefiles/"
     GRAPHML_DIR = "../random_data/graphml/"
-    return GEOJSON_DIR, GRAPHML_DIR, SHPFILE_DIR
+    CSV_DIR = "../random_data/csvs/"
+    TXT_DIR = "../random_data/txt"
+    return CSV_DIR, GEOJSON_DIR, GRAPHML_DIR, SHPFILE_DIR, TXT_DIR
 
 
 @app.cell
@@ -385,6 +387,22 @@ def _(clean_baltimore_edges, clean_nyc_edges, pd):
 def _():
     # with Session(engine) as session:
     #     added_edges, skipped_edges = populate_edges(session, combined_edges.to_dict("records"))
+    return
+
+
+@app.cell
+def _(GEOJSON_DIR, gpd, nyc_boroughs_normalized):
+    # Start grocery store processing
+    nyc_borough_names = list(nyc_boroughs_normalized["name"].str.replace(" ", "").str.lower().unique()) + ["kings"]
+    nys_food_retailer = gpd.read_file(GEOJSON_DIR + "NY_Retail_Food_Stores_20250504.geojson")
+    nyc_food_retailer = nys_food_retailer[nys_food_retailer["county"].str.replace(" ", "").str.lower().isin(nyc_borough_names)]
+    nyc_food_retailer
+    return nyc_borough_names, nyc_food_retailer, nys_food_retailer
+
+
+@app.cell
+def _(nyc_food_retailer):
+    nyc_food_retailer
     return
 
 
