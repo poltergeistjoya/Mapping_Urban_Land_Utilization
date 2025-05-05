@@ -17,7 +17,7 @@ from backend.models.tables import Location, Place, WalkableEdge
 
 
 log = structlog.get_logger()
-DATABASE_URL = "postgresql://postgres:password@localhost:5432/urban_utilization"
+DATABASE_URL = "postgresql://postgres:yourpassword@localhost:5342/urban_utilization"
 BATCH_SIZE = 5000
 
 # set up the database connection
@@ -163,6 +163,7 @@ def populate_places(session, rows, verbose=True):
         # check for existence by place_type + geom to the nearest meter
         exists = session.scalar(
             select(Place)
+            .where(Place.name == name)
             .where(Place.place_type == place_type)
             .where(ST_DWithin(Place.geom, geo_obj, 0.00001))
         )
@@ -256,41 +257,6 @@ def populate_edges(session, rows, verbose=True):
     return added, skipped
 
 
-# def populate_location_id_edges(session):
-#     offset = 0
-#     total_updated = 0
-#     while True:
-#         # fetch batch of edges where location_id is NULL
-#         edges = session.scalars(
-#             select(WalkableEdge)
-#             .where(WalkableEdge.location_id.is_(None))
-#             .limit(BATCH_SIZE)
-#             .offset(offset)
-#         ).all()
-
-#         if not edges:
-#             log.info("All edges have a location_id set")
-#             break
-#         for edge in edges:
-#             city_location = session.scalar(
-#                 select(Location)
-#                 .where(Location.location_type.any("city"))
-#                 .where(ST_Intersects(edge.geometry, Location.geom))
-#                 .order_by(func.ST_Area(Location.geom))
-#                 .limit(1)
-#             )
-
-#             if city_location:
-#                 edge.location_id = city_location.id
-#                 total_updated += 1
-
-#         session.commit()
-#         offset += BATCH_SIZE
-#         log.info(f"Commited batch, total edges updated so far: {total_updated}")
-
-#     log.info(f"Added location_id to {total_updated} edges")
-
-
 def populate_location_id_edges(session):
     cities = session.scalars(
         select(Location).where(Location.location_type.any("city"))
@@ -315,8 +281,9 @@ def populate_location_id_edges(session):
 
 
 if __name__ == "__main__":
-    SessionLocal = sessionmaker(bind=engine)  # where to import sessionmaker?
-    session = SessionLocal()
-    populate_location_id_edges(session)
-    session.close()
+    # SessionLocal = sessionmaker(bind=engine)  # where to import sessionmaker?
+    # session = SessionLocal()
+    # populate_location_id_edges(session)
+    # session.close()
     # log.info("Run some functions to populate database")
+    pass

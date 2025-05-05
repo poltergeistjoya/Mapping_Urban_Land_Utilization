@@ -185,7 +185,7 @@ def compute_isochrone_pt(pt: MarkerPosition, db=Depends(get_db)):
     polygon_result = get_polygon_and_places(
         edge_ids=edge_ids,
         db=db,
-        place_types=["street_vendor"]
+        place_types=["grocery_store"]
         )
     
     log.info(polygon_result)

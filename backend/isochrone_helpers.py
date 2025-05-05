@@ -19,26 +19,26 @@ def snap_point_to_edge(lat: float, lng: float, db: Session):
         """
     WITH snapped AS (
         SELECT *,
-            ST_LineLocatePoint(geometry, ST_SetSRID(ST_Point(:lng, :lat), 4326)) AS pos
+            ST_LineLocatePoint(geom, ST_SetSRID(ST_Point(:lng, :lat), 4326)) AS pos
         FROM walkable_edges
-        ORDER BY geometry <-> ST_SetSRID(ST_Point(:lng, :lat), 4326)
+        ORDER BY geom <-> ST_SetSRID(ST_Point(:lng, :lat), 4326)
         LIMIT 1
     )
     SELECT 
-        ST_AsEWKB(ST_LineInterpolatePoint(geometry, pos)) AS interpolated_pt,
+        ST_AsEWKB(ST_LineInterpolatePoint(geom, pos)) AS interpolated_pt,
         u as source,
         v as target,
         CASE 
-            WHEN ST_Distance(ST_StartPoint(geometry), ST_LineInterpolatePoint(geometry, pos)) < 
-            ST_Distance(ST_EndPoint(geometry), ST_LineInterpolatePoint(geometry, pos)) 
+            WHEN ST_Distance(ST_StartPoint(geom), ST_LineInterpolatePoint(geom, pos)) < 
+            ST_Distance(ST_EndPoint(geom), ST_LineInterpolatePoint(geom, pos)) 
             THEN u ELSE v 
         END AS nearest_node,
         ST_AsEWKB(
              CASE 
-             WHEN ST_Distance(ST_StartPoint(geometry), ST_LineInterpolatePoint(geometry, pos))< 
-             ST_Distance(ST_EndPoint(geometry), ST_LineInterpolatePoint(geometry, pos))
-             THEN ST_StartPoint(geometry)
-             ELSE ST_EndPoint(geometry)
+             WHEN ST_Distance(ST_StartPoint(geom), ST_LineInterpolatePoint(geom, pos))< 
+             ST_Distance(ST_EndPoint(geom), ST_LineInterpolatePoint(geom, pos))
+             THEN ST_StartPoint(geom)
+             ELSE ST_EndPoint(geom)
              END
         ) AS nearest_node_geom
         FROM snapped;
@@ -49,107 +49,6 @@ def snap_point_to_edge(lat: float, lng: float, db: Session):
     )
     snapped_point = db.execute(q, {"lat": lat, "lng": lng}).first()
     return snapped_point
-
-# def get_isochrone_edges(snapped_point, db: Session, cost_limit: float = 1260):
-#     query = text("""
-#         WITH reachable AS (
-#             SELECT edge
-#             FROM pgr_drivingDistance(
-#                 'SELECT id, u AS source, v AS target, length_m AS cost, length_m AS reverse_cost FROM walkable_edges',
-#                 :start_vid,
-#                 :cost_limit
-#             )
-#             WHERE edge != -1
-#         ),
-#         limited_edges AS (
-#             SELECT we.*
-#             FROM reachable r
-#             JOIN walkable_edges we ON we.id = r.edge
-#         )
-#         SELECT 
-#             jsonb_build_object(
-#                 'type', 'FeatureCollection',
-#                 'features', jsonb_agg(
-#                     jsonb_build_object(
-#                         'type', 'Feature',
-#                         'geometry', ST_AsGeoJSON(geometry)::jsonb,
-#                         'properties', jsonb_build_object(
-#                             'id', id,
-#                             'u', u,
-#                             'v', v,
-#                             'key', key,
-#                             'length_m', length_m
-#                         )
-#                     )
-#                 )
-#             ) AS geojson,
-#             array_agg(geometry) AS geoms
-#         FROM limited_edges;
-#     """)
-
-#     result = db.execute(query, {
-#         "start_vid": snapped_point.nearest_node,
-#         "cost_limit": cost_limit
-#     }).first()
-
-#     return {
-#         "geojson": result.geojson,
-#         "geoms": result.geoms
-#     }
-
-# def get_polygon_and_places(edge_geojson: dict, db: Session, place_types: list[str], buffer_m: float = 25.0):
-#     # Validate place types
-#     invalid = set(place_types) - ALLOWED_PLACE_TYPES
-#     if invalid:
-#         raise ValueError(f"Invalid place types: {invalid}")
-
-#     lines = [shape(f["geometry"]) for f in edge_geojson["features"] if f["geometry"]["type"] == "LineString"]
-#     if not lines:
-#         return {
-#             "polygon": None,
-#             "places": {
-#                 "type": "FeatureCollection",
-#                 "features": []
-#             }
-#         }
-
-#     merged = unary_union(lines)
-#     buffered = merged.buffer(buffer_m)
-#     buffered_wkt = WKTElement(buffered.wkt, srid=4326)
-
-#     query = text("""
-#         SELECT jsonb_agg(jsonb_build_object(
-#             'type', 'Feature',
-#             'geometry', ST_AsGeoJSON(p.geom)::json,
-#             'properties', jsonb_build_object(
-#                 'id', p.id,
-#                 'name', p.name,
-#                 'type', p.place_type
-#             )
-#         )) AS places
-#         FROM places p
-#         WHERE p.place_type = ANY(:types)
-#           AND ST_Within(p.geom, :buffered_geom)
-#     """)
-
-#     result = db.execute(query, {
-#         "types": place_types,
-#         "buffered_geom": buffered_wkt
-#     }).first()
-
-#     return {
-#         "polygon": {
-#             "type": "Feature",
-#             "geometry": mapping(buffered),
-#             "properties": {
-#                 "description": f"{buffer_m}m isochrone buffer"
-#             }
-#         },
-#         "places": {
-#             "type": "FeatureCollection",
-#             "features": result.places or []
-#         }
-#     }
 
 def get_isochrone_edges(snapped_point, db: Session, cost_limit: float = 1260):
     query = text("""
@@ -173,7 +72,7 @@ def get_isochrone_edges(snapped_point, db: Session, cost_limit: float = 1260):
                 'features', jsonb_agg(
                     jsonb_build_object(
                         'type', 'Feature',
-                        'geometry', ST_AsGeoJSON(geometry)::jsonb,
+                        'geometry', ST_AsGeoJSON(geom)::jsonb,
                         'properties', jsonb_build_object(
                             'id', id,
                             'u', u,
@@ -215,7 +114,7 @@ def get_polygon_and_places(edge_ids: list[int], db: Session, place_types: list[s
 
     query = text("""
         WITH edge_geom AS (
-            SELECT ST_Buffer(geometry, :buffer_m) AS buffered_geom
+            SELECT ST_Buffer(geom, :buffer_m) AS buffered_geom
             FROM walkable_edges
             WHERE id = ANY(:edge_ids)
         ),

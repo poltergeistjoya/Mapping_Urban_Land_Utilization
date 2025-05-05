@@ -302,60 +302,60 @@ def _():
 
 
 @app.cell
-def _(GRAPHML_DIR, Path, ox):
-    baltimore_graph_path = Path(GRAPHML_DIR + "baltimore_walk.graphml")
-    nyc_graph_path = Path(GRAPHML_DIR + "nyc_walk.graphml")
+def _():
+    # baltimore_graph_path = Path(GRAPHML_DIR + "baltimore_walk.graphml")
+    # nyc_graph_path = Path(GRAPHML_DIR + "nyc_walk.graphml")
 
-    if baltimore_graph_path.exists():
-        print("Loading cached baltimore graph")
-        G_baltimore = ox.load_graphml(baltimore_graph_path)
-    else:
-        G_baltimore = ox.graph_from_place("Baltimore, Maryland, USA", network_type="walk")
-        ox.save_graphml(G_baltimore, baltimore_graph_path)
+    # if baltimore_graph_path.exists():
+    #     print("Loading cached baltimore graph")
+    #     G_baltimore = ox.load_graphml(baltimore_graph_path)
+    # else:
+    #     G_baltimore = ox.graph_from_place("Baltimore, Maryland, USA", network_type="walk")
+    #     ox.save_graphml(G_baltimore, baltimore_graph_path)
 
-    if nyc_graph_path.exists():
-        print("Loading cached nyc graph")
-        G_nyc = ox.load_graphml(nyc_graph_path)
-    else:
-        G_nyc = ox.graph_from_place("New York City, New York, USA", network_type="walk")
-        ox.save_graphml(G_nyc, nyc_graph_path)
+    # if nyc_graph_path.exists():
+    #     print("Loading cached nyc graph")
+    #     G_nyc = ox.load_graphml(nyc_graph_path)
+    # else:
+    #     G_nyc = ox.graph_from_place("New York City, New York, USA", network_type="walk")
+    #     ox.save_graphml(G_nyc, nyc_graph_path)
 
-    return G_baltimore, G_nyc, baltimore_graph_path, nyc_graph_path
-
-
-@app.cell
-def _(G_baltimore, ox):
-    # Convert to GeoDataFrame (edges = walkable segments)
-    baltimore_edges = ox.graph_to_gdfs(G_baltimore, nodes=False, edges=True)
-    baltimore_edges.plot()
-    return (baltimore_edges,)
+    return
 
 
 @app.cell
-def _(G_nyc, ox, plt):
-    # Convert to GeoDataFrame (edges = walkable segments)
-    nyc_edges = ox.graph_to_gdfs(G_nyc, nodes=False, edges=True)
-    fig,ax =plt.subplots(figsize=(12,12))
-    nyc_edges.plot(ax=ax)
-    return ax, fig, nyc_edges
+def _():
+    # # Convert to GeoDataFrame (edges = walkable segments)
+    # baltimore_edges = ox.graph_to_gdfs(G_baltimore, nodes=False, edges=True)
+    # baltimore_edges.plot()
+    return
 
 
 @app.cell
-def _(baltimore_edges):
-    from itertools import chain
-
-    set(chain.from_iterable(
-        v if isinstance(v, list) else [v]
-        for v in baltimore_edges["highway"]
-    ))
-    return (chain,)
+def _():
+    # # Convert to GeoDataFrame (edges = walkable segments)
+    # nyc_edges = ox.graph_to_gdfs(G_nyc, nodes=False, edges=True)
+    # fig,ax =plt.subplots(figsize=(12,12))
+    # nyc_edges.plot(ax=ax)
+    return
 
 
 @app.cell
-def _(baltimore_edges, nyc_edges):
-    common_walk_cols = list(set(baltimore_edges.columns) & set(nyc_edges.columns))
-    common_walk_cols
-    return (common_walk_cols,)
+def _():
+    # from itertools import chain
+
+    # set(chain.from_iterable(
+    #     v if isinstance(v, list) else [v]
+    #     for v in baltimore_edges["highway"]
+    # ))
+    return
+
+
+@app.cell
+def _():
+    # common_walk_cols = list(set(baltimore_edges.columns) & set(nyc_edges.columns))
+    # common_walk_cols
+    return
 
 
 @app.cell
@@ -370,17 +370,17 @@ def _():
 
 
 @app.cell
-def _(baltimore_edges, clean_osmnx_edges_df, nyc_edges):
-    clean_baltimore_edges = clean_osmnx_edges_df(baltimore_edges)
-    clean_nyc_edges = clean_osmnx_edges_df(nyc_edges)
-    return clean_baltimore_edges, clean_nyc_edges
+def _():
+    # clean_baltimore_edges = clean_osmnx_edges_df(baltimore_edges)
+    # clean_nyc_edges = clean_osmnx_edges_df(nyc_edges)
+    return
 
 
 @app.cell
-def _(clean_baltimore_edges, clean_nyc_edges, pd):
-    combined_edges = pd.concat([clean_baltimore_edges, clean_nyc_edges], ignore_index=True)
-    combined_edges
-    return (combined_edges,)
+def _():
+    # combined_edges = pd.concat([clean_baltimore_edges, clean_nyc_edges], ignore_index=True)
+    # combined_edges
+    return
 
 
 @app.cell
@@ -395,14 +395,141 @@ def _(GEOJSON_DIR, gpd, nyc_boroughs_normalized):
     # Start grocery store processing
     nyc_borough_names = list(nyc_boroughs_normalized["name"].str.replace(" ", "").str.lower().unique()) + ["kings"]
     nys_food_retailer = gpd.read_file(GEOJSON_DIR + "NY_Retail_Food_Stores_20250504.geojson")
-    nyc_food_retailer = nys_food_retailer[nys_food_retailer["county"].str.replace(" ", "").str.lower().isin(nyc_borough_names)]
+    nyc_food_retailer = nys_food_retailer[nys_food_retailer["county"].str.replace(" ", "").str.lower().isin(nyc_borough_names)].copy()
     nyc_food_retailer
     return nyc_borough_names, nyc_food_retailer, nys_food_retailer
 
 
 @app.cell
 def _(nyc_food_retailer):
+    nyc_food_retailer["estab_type"].unique()
+    nyc_food_retailer["name"] = nyc_food_retailer["dba_name"]
+    nyc_food_retailer["desc"] = (
+        nyc_food_retailer["street_number"].astype(str)
+        + " "
+        + nyc_food_retailer["street_name"].astype(str)
+        + ", "
+        + nyc_food_retailer["city"].astype(str)
+        + ", "
+        + nyc_food_retailer["zip_code"].astype(str)
+    )
+    nyc_food_retailer["zip_code"]
+    nyc_food_retailer["year_added"] = 2025
+    nyc_food_retailer["year_removed"] = None
     nyc_food_retailer
+    return
+
+
+@app.cell
+def _(gpd, normalize_to_place, nyc_food_retailer):
+    nyc_food_retailer_normalized = gpd.GeoDataFrame(
+        nyc_food_retailer.apply(
+            lambda row: normalize_to_place(
+                row=row,
+                col_map={
+                    "name": "name",
+                    "desc": "desc",
+                    "geom": "geometry",
+                    "year_added": "year_added",
+                    "year_removed": "year_removed"
+                },
+                place_type="grocery_store"
+            ),
+            axis=1
+        ).tolist(),
+        geometry="geom",
+        crs="EPSG:4326"
+    )
+    nyc_food_retailer_normalized_dedup = nyc_food_retailer_normalized.drop_duplicates(
+        subset=["name", "place_type", nyc_food_retailer_normalized.geometry.name],
+        keep="first"
+    )
+    nyc_food_retailer_normalized_dedup
+    return nyc_food_retailer_normalized, nyc_food_retailer_normalized_dedup
+
+
+@app.cell
+def _(nyc_food_retailer_normalized_dedup):
+    nyc_groc_dupes = nyc_food_retailer_normalized_dedup[nyc_food_retailer_normalized_dedup.duplicated(subset=["name", "place_type", "geom"], keep=False)]
+    nyc_groc_dupes
+    return (nyc_groc_dupes,)
+
+
+@app.cell
+def _(GEOJSON_DIR, gpd):
+    baltimore_grocery_stores = gpd.read_file(GEOJSON_DIR + "bmore_opendata_Grocery_Stores.geojson")
+    baltimore_grocery_stores
+    return (baltimore_grocery_stores,)
+
+
+@app.cell
+def _(baltimore_grocery_stores, gpd, normalize_to_place):
+    baltimore_grocery_stores["name"] = baltimore_grocery_stores["storename"]
+    baltimore_grocery_stores["desc"] = baltimore_grocery_stores["address"]
+    baltimore_grocery_stores["year_added"]= 2025
+    baltimore_grocery_stores["year_removed"] = None
+
+    baltimore_grocery_stores_normalized = gpd.GeoDataFrame(
+        baltimore_grocery_stores.apply(
+            lambda row: normalize_to_place(
+                row=row,
+                col_map={
+                    "name": "name",
+                    "desc": "desc",
+                    "geom": "geometry",
+                    "year_added": "year_added",
+                    "year_removed": "year_removed"
+                },
+                place_type="grocery_store"
+            ),
+            axis=1
+        ).tolist(),
+        geometry="geom",
+        crs="EPSG:4326"
+    )
+    baltimore_grocery_stores_normalized_dedup = baltimore_grocery_stores_normalized.drop_duplicates(
+        subset=["name", "place_type", baltimore_grocery_stores_normalized.geometry.name],
+        keep="first"
+    )
+    baltimore_grocery_stores_normalized_dedup
+    return (
+        baltimore_grocery_stores_normalized,
+        baltimore_grocery_stores_normalized_dedup,
+    )
+
+
+@app.cell
+def _(baltimore_grocery_stores_normalized_dedup):
+    bmore_groc_dupes = baltimore_grocery_stores_normalized_dedup[baltimore_grocery_stores_normalized_dedup.duplicated(subset=["name", "place_type", "geom"], keep=False)]
+    bmore_groc_dupes
+    return (bmore_groc_dupes,)
+
+
+@app.cell
+def _(
+    Session,
+    baltimore_grocery_stores_normalized_dedup,
+    engine,
+    nyc_food_retailer_normalized_dedup,
+    populate_places,
+):
+    # #ONLY WHEN YOU WANT TO CREATE ALL TABLES
+    # ensure_all_tables(engine, Base)
+
+    with Session(engine) as session:
+        added_nyc_groc, skipped_nyc_groc = populate_places(session, nyc_food_retailer_normalized_dedup.to_dict("records"))
+        added_bmore_groc, skipped_bmore_groc = populate_places(session, baltimore_grocery_stores_normalized_dedup.to_dict("records"))
+    return (
+        added_bmore_groc,
+        added_nyc_groc,
+        session,
+        skipped_bmore_groc,
+        skipped_nyc_groc,
+    )
+
+
+@app.cell
+def _():
     return
 
 

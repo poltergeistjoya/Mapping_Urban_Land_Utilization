@@ -45,7 +45,7 @@ class Location(Base):
         super().__init__(**kwargs)
 
 
-ALLOWED_PLACE_TYPES = {"street_vendor", "trash_can"}
+ALLOWED_PLACE_TYPES = {"street_vendor", "trash_can", "grocery_store", "public_transit", "school"}
 
 
 class Place(Base):
@@ -65,7 +65,7 @@ class Place(Base):
     geom = Column(Geometry("POINT"), nullable=False)
 
     __table_args__ = (
-        UniqueConstraint("name", "place_type", "geom", name="uq_place_name_type_geom")
+        UniqueConstraint("name", "place_type", "geom", name="uq_place_name_type_geom"),
     )
     def __init__(self, **kwargs):
         type = kwargs.get("place_type")
@@ -89,12 +89,12 @@ class WalkableEdge(Base):
     key = Column(Integer, nullable=False, default=0)
     length_m = Column(Float, nullable=False)
     highway = Column(ARRAY(String), nullable=True)
-    geometry = Column(Geometry("LINESTRING", srid=4326), nullable=False)
+    geom = Column(Geometry("LINESTRING", srid=4326), nullable=False)
 
     location_id = Column(Integer, ForeignKey("locations.id"))
 
     __table_args__ = (
         PrimaryKeyConstraint("u", "v", "key"),
-        Index("idx_walkable_edges_geometry", "geometry", postgresql_using="gist"),
+        Index("idx_walkable_edges_geom", "geom", postgresql_using="gist"),
     )
 
