@@ -62,6 +62,7 @@ Baltimore: liquor Licenses
 -[ ] add intermediate nodes for more accurate isochrone (10-20 meter spacing)
 -[ ] add allowed highway types to walkableEdge table (low priority)
 -[ ] add node table for more accurate isochrone + figure out how to optimize that and make it fast
+-[ ] move styling to css 
 
 ## Deployment 
 make sure you have pg routing 

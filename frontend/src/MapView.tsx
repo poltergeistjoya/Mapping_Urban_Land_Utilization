@@ -127,11 +127,19 @@ const MapView = ({ selectedFeature, placeFeatures, edgesFeatures }: MapViewProps
             closeOnClick={false}
           >
             <div>
-              <strong>{hoveredPlace.properties?.name}</strong>
-              <div>{hoveredPlace.properties?.desc}</div>
+              <div style={{ fontSize: "14px", fontWeight: 700, textTransform: "uppercase", color: "#000" }}>
+                {hoveredPlace.properties?.type || "(Unknown type)"}
+              </div>
+              <div style={{ fontSize: "13px", fontWeight: 600, color: "#000" }}>
+                {hoveredPlace.properties?.name || "(Unnamed)"}
+              </div>
+              <div style={{ fontSize: "12px", color: "#000" }}>
+                {hoveredPlace.properties?.desc || "(No description)"}
+              </div>
             </div>
           </Popup>
         )}
+
       </Map>
     </div>
   );

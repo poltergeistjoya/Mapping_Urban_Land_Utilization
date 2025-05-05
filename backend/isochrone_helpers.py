@@ -131,6 +131,7 @@ def get_polygon_and_places(edge_ids: list[int], db: Session, place_types: list[s
                     'properties', jsonb_build_object(
                         'id', p.id,
                         'name', p.name,
+                        'desc', p.desc,
                         'type', p.place_type
                     )
                 ))
