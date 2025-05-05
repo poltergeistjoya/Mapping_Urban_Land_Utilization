@@ -215,16 +215,16 @@ def get_polygon_and_places(edge_ids: list[int], db: Session, place_types: list[s
 
     query = text("""
         WITH edge_geom AS (
-            SELECT geometry
+            SELECT ST_Buffer(geometry, :buffer_m) AS buffered_geom
             FROM walkable_edges
             WHERE id = ANY(:edge_ids)
         ),
-        geom_union AS (
-            SELECT ST_Buffer(ST_Union(geometry), :buffer_m) AS geom
+        smoothed AS (
+            SELECT ST_Union(buffered_geom) AS geom
             FROM edge_geom
         )
         SELECT 
-            ST_AsGeoJSON(geom_union.geom)::json AS polygon,
+            ST_AsGeoJSON(ST_Transform(smoothed.geom, 4326))::json AS polygon,
             (
                 SELECT jsonb_agg(jsonb_build_object(
                     'type', 'Feature',
@@ -237,9 +237,9 @@ def get_polygon_and_places(edge_ids: list[int], db: Session, place_types: list[s
                 ))
                 FROM places p
                 WHERE p.place_type = ANY(:types)
-                  AND ST_Within(p.geom, geom_union.geom)
+                  AND ST_Within(p.geom, smoothed.geom)
             ) AS places
-        FROM geom_union;
+        FROM smoothed;
     """)
     log.info("getting polygon and places ...")
     result = db.execute(query, {
@@ -255,3 +255,4 @@ def get_polygon_and_places(edge_ids: list[int], db: Session, place_types: list[s
             "features": result.places or []
         }
     }
+
