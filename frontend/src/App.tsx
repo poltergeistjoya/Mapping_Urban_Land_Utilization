@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Sidebar from "./Sidebar";
 import MapView from "./MapView";
+import LinearProgress from '@mui/material/LinearProgress';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
@@ -12,6 +13,7 @@ const App = () => {
   const [selectedPlaceTypes, setSelectedPlaceTypes] = useState<string[]>([]);
   const [placeFeatures, setPlaceFeatures] = useState<any[]>([]);
   const [edgesFeatures, setEdgesFeatures] = useState<any[]>([]);
+  const [globalLoading, setGlobalLoading] = useState(false);
 
   // Runs once on component mount, fetch all static data
   useEffect(() => {
@@ -25,6 +27,30 @@ const App = () => {
     axios.get(`${BASE_URL}/place_types/`).then((res) => {
       setPlaceTypes(res.data);
     });
+  }, []);
+
+  useEffect(() => {
+    // Global loading indicator logic
+    const reqInterceptor = axios.interceptors.request.use((config) => {
+      setGlobalLoading(true);
+      return config;
+    });
+  
+    const resInterceptor = axios.interceptors.response.use(
+      (response) => {
+        setGlobalLoading(false);
+        return response;
+      },
+      (error) => {
+        setGlobalLoading(false);
+        return Promise.reject(error);
+      }
+    );
+  
+    return () => {
+      axios.interceptors.request.eject(reqInterceptor);
+      axios.interceptors.response.eject(resInterceptor);
+    };
   }, []);
 
   const fetchFeature = (cityName: string) => {
@@ -107,15 +133,29 @@ const App = () => {
           onTogglePlaceType={handleTogglePlaceType}
         />
       </div>
-      <div style={{ flex: 1 }}>
+      <div style={{ flex: 1, position: "relative" }}>
         <MapView
           selectedFeature={selectedFeature}
           placeFeatures={placeFeatures}
           edgesFeatures={edgesFeatures}
         />
+        {globalLoading && (
+          <div style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: "4px",
+            zIndex: 1000
+          }}>
+            <LinearProgress color="secondary" />
+          </div>
+        )}
       </div>
     </div>
   );
 };
+
+
 
 export default App;

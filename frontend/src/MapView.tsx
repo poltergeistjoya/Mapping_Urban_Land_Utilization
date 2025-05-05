@@ -9,6 +9,7 @@ import axios from "axios";
 import maplibregl, { MapGeoJSONFeature } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 
+
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 type MapViewProps = {
@@ -27,6 +28,8 @@ const MapView = ({ selectedFeature, placeFeatures, edgesFeatures }: MapViewProps
   const [isochronePlaces, setIsochronePlaces] = useState<any | null>(null);
   const [isochronePolygon, setIsochronePolygon] = useState<any | null>(null);
   const [hoveredPlace, setHoveredPlace] = useState<MapGeoJSONFeature | null>(null);
+  const [loadingIsochrone, setLoadingIsochrone] = useState(false);
+
 
   useEffect(() => {
     const map = mapRef.current;
@@ -60,13 +63,16 @@ const MapView = ({ selectedFeature, placeFeatures, edgesFeatures }: MapViewProps
 
           marker.on("dragend", () => {
             const { lat, lng } = marker.getLngLat();
-            axios.post(`${BASE_URL}/isochrone-pt/`, { lat, lng }).then((res) => {
-              setSnappedPointFeature(res.data.snapped_point);
-              setNearestNodeFeature(res.data.nearest_node);
-              setComputedEdges(res.data.edges);
-              setIsochronePolygon(res.data.polygon);
-              setIsochronePlaces(res.data.places);
-            });
+            setLoadingIsochrone(true);
+            axios.post(`${BASE_URL}/isochrone-pt/`, { lat, lng })
+              .then((res) => {
+                setSnappedPointFeature(res.data.snapped_point);
+                setNearestNodeFeature(res.data.nearest_node);
+                setComputedEdges(res.data.edges);
+                setIsochronePolygon(res.data.polygon);
+                setIsochronePlaces(res.data.places);
+              })
+              .finally(() => setLoadingIsochrone(false));
           });
 
           markerRef.current = marker;
