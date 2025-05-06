@@ -3,7 +3,7 @@ from sqlalchemy import text
 from geoalchemy2 import Geometry
 from jinja2 import Template
 from geoalchemy2.elements import WKTElement
-import structlog 
+import structlog
 from shapely.geometry import mapping
 from shapely.geometry import shape, MultiLineString, mapping
 from shapely.ops import unary_union
@@ -11,6 +11,7 @@ from shapely.ops import unary_union
 from models.tables import ALLOWED_PLACE_TYPES
 
 log = structlog.get_logger()
+
 
 # snapped_point = snap_point_to_edge(pt.lat, pt.lng, db)
 async def snap_point_to_edge(lat: float, lng: float, db: Session):
@@ -51,8 +52,10 @@ async def snap_point_to_edge(lat: float, lng: float, db: Session):
     snapped_point = result.first()
     return snapped_point
 
+
 async def get_isochrone_edges(snapped_point, db: Session, cost_limit: float = 1260):
-    query = text("""
+    query = text(
+        """
         WITH reachable AS (
             SELECT edge
             FROM pgr_drivingDistance(
@@ -86,22 +89,21 @@ async def get_isochrone_edges(snapped_point, db: Session, cost_limit: float = 12
             ) AS geojson,
             array_agg(id) AS edge_ids
         FROM limited_edges;
-    """)
+    """
+    )
 
-    tmp = await db.execute(query, {
-        "start_vid": snapped_point.nearest_node,
-        "cost_limit": cost_limit
-    })
+    tmp = await db.execute(
+        query, {"start_vid": snapped_point.nearest_node, "cost_limit": cost_limit}
+    )
 
     result = tmp.first()
 
+    return {"geojson": result.geojson, "edge_ids": result.edge_ids}
 
-    return {
-        "geojson": result.geojson,
-        "edge_ids": result.edge_ids
-    }
 
-async def get_polygon_and_places(edge_ids: list[int], db: Session, place_types: list[str], buffer_m: float =  0.000405):
+async def get_polygon_and_places(
+    edge_ids: list[int], db: Session, place_types: list[str], buffer_m: float = 0.000405
+):
     # Validate place types
     invalid = set(place_types) - ALLOWED_PLACE_TYPES
     if invalid:
@@ -110,13 +112,11 @@ async def get_polygon_and_places(edge_ids: list[int], db: Session, place_types: 
     if not edge_ids:
         return {
             "polygon": None,
-            "places": {
-                "type": "FeatureCollection",
-                "features": []
-            }
+            "places": {"type": "FeatureCollection", "features": []},
         }
 
-    query = text("""
+    query = text(
+        """
         WITH edge_geom AS (
             SELECT ST_Buffer(geom, :buffer_m) AS buffered_geom
             FROM walkable_edges
@@ -144,21 +144,16 @@ async def get_polygon_and_places(edge_ids: list[int], db: Session, place_types: 
                   AND ST_Within(p.geom, smoothed.geom)
             ) AS places
         FROM smoothed;
-    """)
+    """
+    )
     log.info("getting polygon and places ...")
-    result = await db.execute(query, {
-        "edge_ids": edge_ids,
-        "types": place_types,
-        "buffer_m": buffer_m
-    })
+    result = await db.execute(
+        query, {"edge_ids": edge_ids, "types": place_types, "buffer_m": buffer_m}
+    )
     row = result.first()
     polygon = row[0]
     places = row[1] or []
     return {
         "polygon": polygon,
-        "places": {
-            "type": "FeatureCollection",
-            "features": places or []
-        }
+        "places": {"type": "FeatureCollection", "features": places or []},
     }
-

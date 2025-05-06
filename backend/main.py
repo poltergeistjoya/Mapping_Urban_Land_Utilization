@@ -13,14 +13,20 @@ from shapely.geometry import mapping
 from time import time
 import json
 from pydantic_models import MarkerPosition
-from isochrone_helpers import snap_point_to_edge, get_isochrone_edges, get_polygon_and_places
+from isochrone_helpers import (
+    snap_point_to_edge,
+    get_isochrone_edges,
+    get_polygon_and_places,
+)
 
 from models.tables import Location, Place, WalkableEdge
 
 log = structlog.get_logger()
 load_dotenv(dotenv_path=".env")
 LOCAL_IP = os.getenv("LOCAL_IP")
-DATABASE_URL = "postgresql+asyncpg://postgres:yourpassword@localhost:5342/urban_utilization"
+DATABASE_URL = (
+    "postgresql+asyncpg://postgres:yourpassword@localhost:5342/urban_utilization"
+)
 
 
 app = FastAPI()
@@ -34,8 +40,9 @@ app.add_middleware(
 )
 # Connect tp PostGIS database
 engine = create_async_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, class_=AsyncSession, autoflush=False, bind=engine)
-
+SessionLocal = sessionmaker(
+    autocommit=False, class_=AsyncSession, autoflush=False, bind=engine
+)
 
 
 # Dependancy to get a database session
@@ -88,7 +95,9 @@ async def get_place_types(db: Session = Depends(get_db)):
 
 
 @app.get("/places/", response_class=ORJSONResponse)
-async def get_places(place_type: str, location_name: str, db: Session = Depends(get_db)):
+async def get_places(
+    place_type: str, location_name: str, db: Session = Depends(get_db)
+):
     t0 = time()
     # Get location polygon
     location = await db.scalar(select(Location).where(Location.name == location_name))
@@ -164,22 +173,26 @@ async def get_edges(location_name: str, db: Session = Depends(get_db)):
         for geojson in edges
     ]
 
+
 @app.post("/isochrone-pt/", response_class=ORJSONResponse)
 async def compute_isochrone_pt(pt: MarkerPosition, db=Depends(get_db)):
-    time_limit_min = 15 
+    time_limit_min = 15
     m_walked_min = 85
-    cost_limit= time_limit_min * m_walked_min
+    cost_limit = time_limit_min * m_walked_min
     t0 = time()
     log.info("isochrone.request.received", lat=pt.lat, lng=pt.lng)
 
     snapped_point = await snap_point_to_edge(pt.lat, pt.lng, db)
-    log.info("isochrone.snap.complete", node_id=snapped_point.nearest_node, duration=f"{time() - t0:.3f}s")
+    log.info(
+        "isochrone.snap.complete",
+        node_id=snapped_point.nearest_node,
+        duration=f"{time() - t0:.3f}s",
+    )
 
     snapped_point_geom = to_shape(snapped_point.interpolated_pt)
     log.info("Snapped Point", coordinates=snapped_point_geom.coords[:])
     node_geom = to_shape(snapped_point.nearest_node_geom)
     log.info("Nearest Node", coordinates=node_geom.coords[:])
-
 
     edges_result = await get_isochrone_edges(snapped_point, db, cost_limit=cost_limit)
     edges_geojson = edges_result.get("geojson")
@@ -189,17 +202,17 @@ async def compute_isochrone_pt(pt: MarkerPosition, db=Depends(get_db)):
 
     edge_ids = edges_result.get("edge_ids")
 
-    
-    log.info("isochrone.edges.query.complete", feature_count=len(edges_geojson["features"]), duration=f"{time() - t0:.3f}s")
+    log.info(
+        "isochrone.edges.query.complete",
+        feature_count=len(edges_geojson["features"]),
+        duration=f"{time() - t0:.3f}s",
+    )
 
     polygon_result = await get_polygon_and_places(
-        edge_ids=edge_ids,
-        db=db,
-        place_types=["grocery_store"]
-        )
-    
+        edge_ids=edge_ids, db=db, place_types=["grocery_store"]
+    )
+
     log.info(polygon_result)
-    
 
     total_time = time() - t0
     log.info("isochrone.response.ready", total_duration=f"{total_time:.3f}s")
@@ -210,20 +223,20 @@ async def compute_isochrone_pt(pt: MarkerPosition, db=Depends(get_db)):
             "geometry": mapping(snapped_point_geom),
             "properties": {
                 "start_vid": snapped_point.nearest_node,
-                "description": "Point snapped to nearest edge"
-            }
+                "description": "Point snapped to nearest edge",
+            },
         },
         "nearest_node": {
             "type": "Feature",
             "geometry": mapping(node_geom),
             "properties": {
                 "id": snapped_point.nearest_node,
-                "description": "Closest graph node (for routing)"
-            }
+                "description": "Closest graph node (for routing)",
+            },
         },
         "edges": edges_geojson,
         "polygon": polygon_result["polygon"],
-        "places": polygon_result["places"]
+        "places": polygon_result["places"],
     }
     # return {"status": "ok"}
 
