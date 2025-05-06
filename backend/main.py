@@ -47,12 +47,12 @@ SessionLocal = sessionmaker(
 
 # Dependancy to get a database session
 # TODO Make dependancies.py
-def get_db():
+async def get_db():
     db = SessionLocal()
     try:
         yield db
     finally:
-        db.close()
+        await db.close()
 
 
 @app.get("/")
@@ -189,8 +189,8 @@ async def compute_isochrone_pt(pt: MarkerPosition, db=Depends(get_db)):
         duration=f"{time() - t0:.3f}s",
     )
 
-    snapped_point_geom = to_shape(snapped_point.interpolated_pt)
-    log.info("Snapped Point", coordinates=snapped_point_geom.coords[:])
+    # snapped_point_geom = to_shape(snapped_point.interpolated_pt)
+    # log.info("Snapped Point", coordinates=snapped_point_geom.coords[:])
     node_geom = to_shape(snapped_point.nearest_node_geom)
     log.info("Nearest Node", coordinates=node_geom.coords[:])
 
@@ -218,14 +218,14 @@ async def compute_isochrone_pt(pt: MarkerPosition, db=Depends(get_db)):
     log.info("isochrone.response.ready", total_duration=f"{total_time:.3f}s")
 
     return {
-        "snapped_point": {
-            "type": "Feature",
-            "geometry": mapping(snapped_point_geom),
-            "properties": {
-                "start_vid": snapped_point.nearest_node,
-                "description": "Point snapped to nearest edge",
-            },
-        },
+        # "snapped_point": {
+        #     "type": "Feature",
+        #     "geometry": mapping(snapped_point_geom),
+        #     "properties": {
+        #         "start_vid": snapped_point.nearest_node,
+        #         "description": "Point snapped to nearest edge",
+        #     },
+        # },
         "nearest_node": {
             "type": "Feature",
             "geometry": mapping(node_geom),

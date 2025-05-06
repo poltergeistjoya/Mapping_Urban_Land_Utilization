@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import text
+from sqlalchemy import text, Integer
 from geoalchemy2 import Geometry
 from jinja2 import Template
 from geoalchemy2.elements import WKTElement
@@ -12,45 +12,76 @@ from models.tables import ALLOWED_PLACE_TYPES
 
 log = structlog.get_logger()
 
+# async def snap_point_to_edge(lat: float, lng: float, db: Session):
+#     # get closest pt on graph (a start or end of existing linestrings in walkable_edges)
+#     q = text(
+#         """
+#     WITH snapped AS (
+#         SELECT *,
+#             ST_LineLocatePoint(geom, ST_SetSRID(ST_Point(:lng, :lat), 4326)) AS pos
+#         FROM walkable_edges
+#         ORDER BY geom <-> ST_SetSRID(ST_Point(:lng, :lat), 4326)
+#         LIMIT 1
+#     )
+#     SELECT 
+#         ST_AsEWKB(ST_LineInterpolatePoint(geom, pos)) AS interpolated_pt,
+#         u as source,
+#         v as target,
+#         CASE 
+#             WHEN ST_Distance(ST_StartPoint(geom), ST_LineInterpolatePoint(geom, pos)) < 
+#             ST_Distance(ST_EndPoint(geom), ST_LineInterpolatePoint(geom, pos)) 
+#             THEN u ELSE v 
+#         END AS nearest_node,
+#         ST_AsEWKB(
+#              CASE 
+#              WHEN ST_Distance(ST_StartPoint(geom), ST_LineInterpolatePoint(geom, pos))< 
+#              ST_Distance(ST_EndPoint(geom), ST_LineInterpolatePoint(geom, pos))
+#              THEN ST_StartPoint(geom)
+#              ELSE ST_EndPoint(geom)
+#              END
+#         ) AS nearest_node_geom
+#         FROM snapped;
+#     """
+#     ).columns(
+#         interpolated_pt=Geometry(geometry_type="POINT", srid=4326),
+#         nearest_node_geom=Geometry(geometry_type="POINT", srid=4326),
+#     )
+#     result = await db.execute(q, {"lat": lat, "lng": lng})
+#     snapped_point = result.first()
+#     return snapped_point
 
-# snapped_point = snap_point_to_edge(pt.lat, pt.lng, db)
 async def snap_point_to_edge(lat: float, lng: float, db: Session):
-    # get closest pt on graph (a start or end of existing linestrings in walkable_edges)
     q = text(
         """
-    WITH snapped AS (
-        SELECT *,
-            ST_LineLocatePoint(geom, ST_SetSRID(ST_Point(:lng, :lat), 4326)) AS pos
+        SELECT 
+            CASE 
+                WHEN ST_Distance(ST_StartPoint(geom), ST_SetSRID(ST_Point(:lng, :lat), 4326)) <
+                     ST_Distance(ST_EndPoint(geom), ST_SetSRID(ST_Point(:lng, :lat), 4326))
+                THEN u ELSE v 
+            END AS nearest_node,
+            ST_AsEWKB(
+                CASE 
+                    WHEN ST_Distance(ST_StartPoint(geom), ST_SetSRID(ST_Point(:lng, :lat), 4326)) <
+                         ST_Distance(ST_EndPoint(geom), ST_SetSRID(ST_Point(:lng, :lat), 4326))
+                    THEN ST_StartPoint(geom)
+                    ELSE ST_EndPoint(geom)
+                END
+            ) AS nearest_node_geom
         FROM walkable_edges
         ORDER BY geom <-> ST_SetSRID(ST_Point(:lng, :lat), 4326)
-        LIMIT 1
-    )
-    SELECT 
-        ST_AsEWKB(ST_LineInterpolatePoint(geom, pos)) AS interpolated_pt,
-        u as source,
-        v as target,
-        CASE 
-            WHEN ST_Distance(ST_StartPoint(geom), ST_LineInterpolatePoint(geom, pos)) < 
-            ST_Distance(ST_EndPoint(geom), ST_LineInterpolatePoint(geom, pos)) 
-            THEN u ELSE v 
-        END AS nearest_node,
-        ST_AsEWKB(
-             CASE 
-             WHEN ST_Distance(ST_StartPoint(geom), ST_LineInterpolatePoint(geom, pos))< 
-             ST_Distance(ST_EndPoint(geom), ST_LineInterpolatePoint(geom, pos))
-             THEN ST_StartPoint(geom)
-             ELSE ST_EndPoint(geom)
-             END
-        ) AS nearest_node_geom
-        FROM snapped;
-    """
+        LIMIT 1;
+        """
     ).columns(
-        interpolated_pt=Geometry(geometry_type="POINT", srid=4326),
+        nearest_node=Integer,
         nearest_node_geom=Geometry(geometry_type="POINT", srid=4326),
     )
+
     result = await db.execute(q, {"lat": lat, "lng": lng})
-    snapped_point = result.first()
-    return snapped_point
+    return result.first()
+
+
+
+
 
 
 async def get_isochrone_edges(snapped_point, db: Session, cost_limit: float = 1260):

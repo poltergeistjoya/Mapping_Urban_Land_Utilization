@@ -100,15 +100,16 @@ const MapView = ({ selectedFeature, placeFeatures, edgesFeatures }: MapViewProps
           </Source>
         )}
 
-        {nearestNodeFeature && (
-          <Source id="nearest-node-source" type="geojson" data={{ type: "FeatureCollection", features: [nearestNodeFeature] }}>
-            <Layer id="nearest-node-layer" type="circle" paint={{ "circle-radius": 5, "circle-color": "#ff9900", "circle-stroke-width": 1, "circle-stroke-color": "#000" }} />
-          </Source>
-        )}
+
 
         {computedEdges && (
           <Source id="computed-edges-source" type="geojson" data={computedEdges}>
             <Layer id="computed-edges-layer" type="line" paint={{ "line-color": "#3399ff", "line-width": 2 }} />
+          </Source>
+        )}
+        {nearestNodeFeature && (
+          <Source id="nearest-node-source" type="geojson" data={{ type: "FeatureCollection", features: [nearestNodeFeature] }}>
+            <Layer id="nearest-node-layer" type="circle" paint={{ "circle-radius": 5, "circle-color": "#ff9900", "circle-stroke-width": 1, "circle-stroke-color": "#000" }} />
           </Source>
         )}
 

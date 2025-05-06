@@ -9,7 +9,7 @@ from sqlalchemy import (
     Float,
     PrimaryKeyConstraint,
     Index,
-    UniqueConstraint
+    UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
 from geoalchemy2 import Geometry
@@ -45,7 +45,13 @@ class Location(Base):
         super().__init__(**kwargs)
 
 
-ALLOWED_PLACE_TYPES = {"street_vendor", "trash_can", "grocery_store", "public_transit", "school"}
+ALLOWED_PLACE_TYPES = {
+    "street_vendor",
+    "trash_can",
+    "grocery_store",
+    "public_transit",
+    "school",
+}
 
 
 class Place(Base):
@@ -67,6 +73,7 @@ class Place(Base):
     __table_args__ = (
         UniqueConstraint("name", "place_type", "geom", name="uq_place_name_type_geom"),
     )
+
     def __init__(self, **kwargs):
         type = kwargs.get("place_type")
 
@@ -82,7 +89,9 @@ class Place(Base):
 class WalkableEdge(Base):
     __tablename__ = "walkable_edges"
 
-    id = Column(Integer, primary_key=False, autoincrement=True, unique=True, index=True) #only new line
+    id = Column(
+        Integer, primary_key=False, autoincrement=True, unique=True, index=True
+    )  # only new line
 
     u = Column(BigInteger, nullable=False)
     v = Column(BigInteger, nullable=False)
@@ -97,4 +106,3 @@ class WalkableEdge(Base):
         PrimaryKeyConstraint("u", "v", "key"),
         Index("idx_walkable_edges_geom", "geom", postgresql_using="gist"),
     )
-
