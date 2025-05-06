@@ -14,6 +14,9 @@ const App = () => {
   const [placeFeatures, setPlaceFeatures] = useState<any[]>([]);
   const [edgesFeatures, setEdgesFeatures] = useState<any[]>([]);
   const [globalLoading, setGlobalLoading] = useState(false);
+  const [walkMinutes, setWalkMinutes] = useState(15);
+  const [selectedisoPlaceTypes, setSelectedisoPlaceTypes] = useState(["grocery_store"]);
+
 
   // Runs once on component mount, fetch all static data
   useEffect(() => {
@@ -130,15 +133,24 @@ const App = () => {
           cityNames={cityNames}
           placeTypes={placeTypes}
           onSelect={handleCitySelect}
-          onTogglePlaceType={handleTogglePlaceType}
+          walkMinutes={walkMinutes}
+          selectedisoPlaceTypes={selectedisoPlaceTypes}
+          onSetWalkMinutes={setWalkMinutes}
+          onToggleIsoPlaceType={(type, checked) =>
+            setSelectedisoPlaceTypes((prev) =>
+              checked ? [...prev, type] : prev.filter((t) => t !== type)
+            )
+          }
         />
       </div>
       <div style={{ flex: 1, position: "relative" }}>
-        <MapView
-          selectedFeature={selectedFeature}
-          placeFeatures={placeFeatures}
-          edgesFeatures={edgesFeatures}
-        />
+      <MapView
+        selectedFeature={selectedFeature}
+        placeFeatures={placeFeatures}
+        edgesFeatures={edgesFeatures}
+        walkMinutes={walkMinutes}
+        isoPlaceTypes={selectedisoPlaceTypes}
+      />
         {globalLoading && (
           <div style={{
             position: "absolute",

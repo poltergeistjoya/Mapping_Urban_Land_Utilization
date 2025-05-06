@@ -176,12 +176,12 @@ async def get_edges(location_name: str, db: Session = Depends(get_db)):
 
 @app.post("/isochrone-pt/", response_class=ORJSONResponse)
 async def compute_isochrone_pt(pt: MarkerPosition, db=Depends(get_db)):
-    time_limit_min = 15
+    time_limit_min = pt.walkMinutes
     m_walked_min = 85
     cost_limit = time_limit_min * m_walked_min
     log.info(f"cost limit: {cost_limit}")
     t0 = time()
-    log.info("isochrone.request.received", lat=pt.lat, lng=pt.lng)
+    log.info(f"isochrone.request.received, {pt}")
 
     snapped_point = await snap_point_to_edge(pt.lat, pt.lng, db)
     log.info(
@@ -206,9 +206,8 @@ async def compute_isochrone_pt(pt: MarkerPosition, db=Depends(get_db)):
         feature_count=len(edges_geojson["features"]),
         duration=f"{time() - t0:.3f}s",
     )
-    log.info(edge_ids)
     polygon_result = await get_polygon_and_places(
-        edge_ids=edge_ids, db=db, place_types=["grocery_store"]
+        edge_ids=edge_ids, db=db, place_types=pt.placeTypes
     )
 
     # log.info(polygon_result)
