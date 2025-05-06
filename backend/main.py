@@ -8,6 +8,7 @@ from sqlalchemy import create_engine, select, func
 from sqlalchemy.orm import sessionmaker, Session
 from geoalchemy2.shape import to_shape
 from geoalchemy2.functions import ST_AsGeoJSON, ST_Within
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from shapely.geometry import mapping
 from time import time
 import json
@@ -19,7 +20,7 @@ from models.tables import Location, Place, WalkableEdge
 log = structlog.get_logger()
 load_dotenv(dotenv_path=".env")
 LOCAL_IP = os.getenv("LOCAL_IP")
-DATABASE_URL = "postgresql://postgres:yourpassword@localhost:5342/urban_utilization"
+DATABASE_URL = "postgresql+asyncpg://postgres:yourpassword@localhost:5342/urban_utilization"
 
 
 app = FastAPI()
@@ -32,10 +33,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 # Connect tp PostGIS database
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+engine = create_async_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, class_=AsyncSession, autoflush=False, bind=engine)
 
-session = Session(bind=engine)
 
 
 # Dependancy to get a database session
@@ -49,8 +49,9 @@ def get_db():
 
 
 @app.get("/")
-def read_root(db: Session = Depends(get_db)):
-    locations = db.scalars(select(Location)).all()
+async def read_root(db: Session = Depends(get_db)):
+    result = await db.scalars(select(Location))
+    locations = result.all()
     cities = [loc.name for loc in locations if "city" in loc.location_type]
     log.info("Sending cities to render homepage")
     return sorted(set(cities))
@@ -58,12 +59,14 @@ def read_root(db: Session = Depends(get_db)):
 
 # TODO should this only give one location ... i dont know ....
 @app.get("/locations/", response_class=ORJSONResponse)
-def get_locations(name: str = Query(None), db: Session = Depends(get_db)):
-    rows = db.execute(
+async def get_locations(name: str = Query(None), db: Session = Depends(get_db)):
+    result = await db.execute(
         select(Location.name, func.ST_AsGeoJSON(Location.geom)).where(
             Location.name == name
         )
-    ).all()
+    )
+
+    rows = result.all()
 
     log.info(f"Retrieved locations from db", count=len(rows))
 
@@ -77,25 +80,27 @@ def get_locations(name: str = Query(None), db: Session = Depends(get_db)):
 
 
 @app.get("/place_types/")
-def get_place_types(db: Session = Depends(get_db)):
-    place_types = db.scalars(select(Place.place_type).distinct()).all()
+async def get_place_types(db: Session = Depends(get_db)):
+    result = await db.scalars(select(Place.place_type).distinct())
+    place_types = result.all()
     log.info(f"got place types {place_types}")
     return sorted(set(place_types))
 
 
 @app.get("/places/", response_class=ORJSONResponse)
-def get_places(place_type: str, location_name: str, db: Session = Depends(get_db)):
+async def get_places(place_type: str, location_name: str, db: Session = Depends(get_db)):
     t0 = time()
     # Get location polygon
-    location = db.scalar(select(Location).where(Location.name == location_name))
+    location = await db.scalar(select(Location).where(Location.name == location_name))
     if not location:
         raise HTTPException(status_code=404, detail=f"{location_name} not found")
     # Find all places within that polygon
-    places = db.execute(
+    result = await db.execute(
         select(Place.name, Place.desc, ST_AsGeoJSON(Place.geom))
         .where(Place.place_type == place_type)
         .where(ST_Within(Place.geom, location.geom))
-    ).all()
+    )
+    places = result.all()
     log.info(f"Got {place_type} for {location_name}", duration=f"{time() - t0:.3f}s")
     return [
         {
@@ -108,11 +113,11 @@ def get_places(place_type: str, location_name: str, db: Session = Depends(get_db
 
 
 @app.get("/edges/", response_class=ORJSONResponse)
-def get_edges(location_name: str, db: Session = Depends(get_db)):
+async def get_edges(location_name: str, db: Session = Depends(get_db)):
     t0 = time()
     log.info("Received request", location_name=location_name)
 
-    location = db.scalar(select(Location).where(Location.name == location_name))
+    location = await db.scalar(select(Location).where(Location.name == location_name))
     log.info("Fetched location", duration=f"{time() - t0:.3f}s")
 
     if not location:
@@ -125,7 +130,7 @@ def get_edges(location_name: str, db: Session = Depends(get_db)):
                 error=ValueError,
                 detail=f"No city parent found for {location.name}, {location.state}, with location types {location.location_type}",
             )
-        current = db.scalar(
+        current = await db.scalar(
             select(Location).where(Location.id == current.parent_location_id)
         )
         if not current:
@@ -138,11 +143,12 @@ def get_edges(location_name: str, db: Session = Depends(get_db)):
     city_id = city.id
     log.info("Resolved city", city_name=city.name, duration=f"{time() - t0:.3f}s")
 
-    edges = db.scalars(
+    result = await db.scalars(
         select(func.ST_AsGeoJSON(WalkableEdge.geometry))
         .where(WalkableEdge.location_id == city_id)
         .where(func.ST_Intersects(WalkableEdge.geometry, location.geom))
-    ).all()
+    )
+    edges = result.all()
     log.info(
         "Queried and serialized GeoJSON",
         count=len(edges),
@@ -159,14 +165,14 @@ def get_edges(location_name: str, db: Session = Depends(get_db)):
     ]
 
 @app.post("/isochrone-pt/", response_class=ORJSONResponse)
-def compute_isochrone_pt(pt: MarkerPosition, db=Depends(get_db)):
+async def compute_isochrone_pt(pt: MarkerPosition, db=Depends(get_db)):
     time_limit_min = 15 
     m_walked_min = 85
     cost_limit= time_limit_min * m_walked_min
     t0 = time()
     log.info("isochrone.request.received", lat=pt.lat, lng=pt.lng)
 
-    snapped_point = snap_point_to_edge(pt.lat, pt.lng, db)
+    snapped_point = await snap_point_to_edge(pt.lat, pt.lng, db)
     log.info("isochrone.snap.complete", node_id=snapped_point.nearest_node, duration=f"{time() - t0:.3f}s")
 
     snapped_point_geom = to_shape(snapped_point.interpolated_pt)
@@ -175,7 +181,7 @@ def compute_isochrone_pt(pt: MarkerPosition, db=Depends(get_db)):
     log.info("Nearest Node", coordinates=node_geom.coords[:])
 
 
-    edges_result = get_isochrone_edges(snapped_point, db, cost_limit=cost_limit)
+    edges_result = await get_isochrone_edges(snapped_point, db, cost_limit=cost_limit)
     edges_geojson = edges_result.get("geojson")
     edges_geom = edges_result.get("geoms")
     if not edges_geom or all(g is None for g in edges_geom):
@@ -186,7 +192,7 @@ def compute_isochrone_pt(pt: MarkerPosition, db=Depends(get_db)):
     
     log.info("isochrone.edges.query.complete", feature_count=len(edges_geojson["features"]), duration=f"{time() - t0:.3f}s")
 
-    polygon_result = get_polygon_and_places(
+    polygon_result = await get_polygon_and_places(
         edge_ids=edge_ids,
         db=db,
         place_types=["grocery_store"]

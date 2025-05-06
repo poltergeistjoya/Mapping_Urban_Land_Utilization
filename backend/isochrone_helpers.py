@@ -13,7 +13,7 @@ from models.tables import ALLOWED_PLACE_TYPES
 log = structlog.get_logger()
 
 # snapped_point = snap_point_to_edge(pt.lat, pt.lng, db)
-def snap_point_to_edge(lat: float, lng: float, db: Session):
+async def snap_point_to_edge(lat: float, lng: float, db: Session):
     # get closest pt on graph (a start or end of existing linestrings in walkable_edges)
     q = text(
         """
@@ -47,17 +47,18 @@ def snap_point_to_edge(lat: float, lng: float, db: Session):
         interpolated_pt=Geometry(geometry_type="POINT", srid=4326),
         nearest_node_geom=Geometry(geometry_type="POINT", srid=4326),
     )
-    snapped_point = db.execute(q, {"lat": lat, "lng": lng}).first()
+    result = await db.execute(q, {"lat": lat, "lng": lng})
+    snapped_point = result.first()
     return snapped_point
 
-def get_isochrone_edges(snapped_point, db: Session, cost_limit: float = 1260):
+async def get_isochrone_edges(snapped_point, db: Session, cost_limit: float = 1260):
     query = text("""
         WITH reachable AS (
             SELECT edge
             FROM pgr_drivingDistance(
                 'SELECT id, u AS source, v AS target, length_m AS cost, length_m AS reverse_cost FROM walkable_edges',
-                :start_vid,
-                :cost_limit
+                CAST(:start_vid AS BIGINT),
+                CAST(:cost_limit AS FLOAT)
             )
             WHERE edge != -1
         ),
@@ -87,17 +88,20 @@ def get_isochrone_edges(snapped_point, db: Session, cost_limit: float = 1260):
         FROM limited_edges;
     """)
 
-    result = db.execute(query, {
+    tmp = await db.execute(query, {
         "start_vid": snapped_point.nearest_node,
         "cost_limit": cost_limit
-    }).first()
+    })
+
+    result = tmp.first()
+
 
     return {
         "geojson": result.geojson,
         "edge_ids": result.edge_ids
     }
 
-def get_polygon_and_places(edge_ids: list[int], db: Session, place_types: list[str], buffer_m: float =  0.000405):
+async def get_polygon_and_places(edge_ids: list[int], db: Session, place_types: list[str], buffer_m: float =  0.000405):
     # Validate place types
     invalid = set(place_types) - ALLOWED_PLACE_TYPES
     if invalid:
@@ -142,17 +146,19 @@ def get_polygon_and_places(edge_ids: list[int], db: Session, place_types: list[s
         FROM smoothed;
     """)
     log.info("getting polygon and places ...")
-    result = db.execute(query, {
+    result = await db.execute(query, {
         "edge_ids": edge_ids,
         "types": place_types,
         "buffer_m": buffer_m
-    }).first()
-
+    })
+    row = result.first()
+    polygon = row[0]
+    places = row[1] or []
     return {
-        "polygon": result.polygon,
+        "polygon": polygon,
         "places": {
             "type": "FeatureCollection",
-            "features": result.places or []
+            "features": places or []
         }
     }
 
