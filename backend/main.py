@@ -1,3 +1,5 @@
+from dotenv import load_dotenv
+import os
 import structlog
 from fastapi import FastAPI, Depends, Query, HTTPException
 from fastapi.responses import ORJSONResponse
@@ -15,6 +17,8 @@ from isochrone_helpers import snap_point_to_edge, get_isochrone_edges, get_polyg
 from models.tables import Location, Place, WalkableEdge
 
 log = structlog.get_logger()
+load_dotenv(dotenv_path=".env")
+LOCAL_IP = os.getenv("LOCAL_IP")
 DATABASE_URL = "postgresql://postgres:yourpassword@localhost:5342/urban_utilization"
 
 
@@ -22,7 +26,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[f"http://{LOCAL_IP}:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
