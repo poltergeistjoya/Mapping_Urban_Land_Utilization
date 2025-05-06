@@ -206,7 +206,7 @@ async def compute_isochrone_pt(pt: MarkerPosition, db=Depends(get_db)):
         feature_count=len(edges_geojson["features"]),
         duration=f"{time() - t0:.3f}s",
     )
-
+    log.info(edge_ids)
     polygon_result = await get_polygon_and_places(
         edge_ids=edge_ids, db=db, place_types=["grocery_store"]
     )

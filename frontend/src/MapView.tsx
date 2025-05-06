@@ -93,6 +93,11 @@ const MapView = ({ selectedFeature, placeFeatures, edgesFeatures }: MapViewProps
         <Source id="places-source" type="geojson" data={{ type: "FeatureCollection", features: placeFeatures || [] }}>
           <Layer id="places-layer" type="circle" paint={{ "circle-radius": 6, "circle-color": "#007cbf", "circle-stroke-width": 1, "circle-stroke-color": "#fff" }} />
         </Source>
+        {isochronePolygon && (
+          <Source id="isochrone-polygon-source" type="geojson" data={isochronePolygon}>
+            <Layer id="isochrone-polygon-layer" type="fill" paint={{ "fill-color": "#66c2a5", "fill-opacity": 0.3 }} />
+          </Source>
+        )}
 
         {snappedPointFeature && (
           <Source id="snapped-point-source" type="geojson" data={{ type: "FeatureCollection", features: [snappedPointFeature] }}>
@@ -109,12 +114,6 @@ const MapView = ({ selectedFeature, placeFeatures, edgesFeatures }: MapViewProps
         {nearestNodeFeature && (
           <Source id="nearest-node-source" type="geojson" data={{ type: "FeatureCollection", features: [nearestNodeFeature] }}>
             <Layer id="nearest-node-layer" type="circle" paint={{ "circle-radius": 5, "circle-color": "#ff9900", "circle-stroke-width": 1, "circle-stroke-color": "#000" }} />
-          </Source>
-        )}
-
-        {isochronePolygon && (
-          <Source id="isochrone-polygon-source" type="geojson" data={isochronePolygon}>
-            <Layer id="isochrone-polygon-layer" type="fill" paint={{ "fill-color": "#66c2a5", "fill-opacity": 0.3 }} />
           </Source>
         )}
 

@@ -135,6 +135,62 @@ async def get_isochrone_edges(snapped_point, lat: float, lng: float, cost_limit:
     return {"geojson": row.geojson, "edge_ids": row.edge_ids}
 
 
+# async def get_polygon_and_places(
+#     edge_ids: list[int], db: Session, place_types: list[str], buffer_m: float = 0.000405
+# ):
+#     # Validate place types
+#     invalid = set(place_types) - ALLOWED_PLACE_TYPES
+#     if invalid:
+#         raise ValueError(f"Invalid place types: {invalid}")
+
+#     if not edge_ids:
+#         return {
+#             "polygon": None,
+#             "places": {"type": "FeatureCollection", "features": []},
+#         }
+
+#     query = text(
+#         """
+#         WITH edge_geom AS (
+#             SELECT ST_Buffer(geom, :buffer_m) AS buffered_geom
+#             FROM walkable_edges
+#             WHERE id = ANY(:edge_ids)
+#         ),
+#         smoothed AS (
+#             SELECT ST_Union(buffered_geom) AS geom
+#             FROM edge_geom
+#         )
+#         SELECT 
+#             ST_AsGeoJSON(ST_Transform(smoothed.geom, 4326))::json AS polygon,
+#             (
+#                 SELECT jsonb_agg(jsonb_build_object(
+#                     'type', 'Feature',
+#                     'geometry', ST_AsGeoJSON(p.geom)::json,
+#                     'properties', jsonb_build_object(
+#                         'id', p.id,
+#                         'name', p.name,
+#                         'desc', p.desc,
+#                         'type', p.place_type
+#                     )
+#                 ))
+#                 FROM places p
+#                 WHERE p.place_type = ANY(:types)
+#                   AND ST_Within(p.geom, smoothed.geom)
+#             ) AS places
+#         FROM smoothed;
+#     """
+#     )
+#     log.info("getting polygon and places ...")
+#     result = await db.execute(
+#         query, {"edge_ids": edge_ids, "types": place_types, "buffer_m": buffer_m}
+#     )
+#     row = result.first()
+#     polygon = row[0]
+#     places = row[1] or []
+#     return {
+#         "polygon": polygon,
+#         "places": {"type": "FeatureCollection", "features": places or []},
+#     }
 
 
 async def get_polygon_and_places(
@@ -159,7 +215,7 @@ async def get_polygon_and_places(
             WHERE id = ANY(:edge_ids)
         ),
         smoothed AS (
-            SELECT ST_Union(buffered_geom) AS geom
+            SELECT ST_Collect(buffered_geom) AS geom
             FROM edge_geom
         )
         SELECT 
@@ -177,11 +233,12 @@ async def get_polygon_and_places(
                 ))
                 FROM places p
                 WHERE p.place_type = ANY(:types)
-                  AND ST_Within(p.geom, smoothed.geom)
+                  AND ST_Within(p.geom, ST_CollectionExtract(smoothed.geom, 3))
             ) AS places
         FROM smoothed;
-    """
+        """
     )
+
     log.info("getting polygon and places ...")
     result = await db.execute(
         query, {"edge_ids": edge_ids, "types": place_types, "buffer_m": buffer_m}
@@ -189,7 +246,8 @@ async def get_polygon_and_places(
     row = result.first()
     polygon = row[0]
     places = row[1] or []
+
     return {
         "polygon": polygon,
-        "places": {"type": "FeatureCollection", "features": places or []},
+        "places": {"type": "FeatureCollection", "features": places},
     }

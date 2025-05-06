@@ -90,8 +90,8 @@ class WalkableEdge(Base):
     __tablename__ = "walkable_edges"
 
     id = Column(
-        Integer, primary_key=False, autoincrement=True, unique=True, index=True
-    )  # only new line
+        Integer, primary_key=True, autoincrement=True, unique=True
+    )
 
     u = Column(BigInteger, nullable=False)
     v = Column(BigInteger, nullable=False)
@@ -103,6 +103,6 @@ class WalkableEdge(Base):
     location_id = Column(Integer, ForeignKey("locations.id"))
 
     __table_args__ = (
-        PrimaryKeyConstraint("u", "v", "key"),
+        UniqueConstraint("u", "v", "key", name="uq_u_v_key"),
         Index("idx_walkable_edges_geom", "geom", postgresql_using="gist"),
     )
