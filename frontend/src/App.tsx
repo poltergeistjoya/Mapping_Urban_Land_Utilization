@@ -141,6 +141,7 @@ const App = () => {
               checked ? [...prev, type] : prev.filter((t) => t !== type)
             )
           }
+          onTogglePlaceType={handleTogglePlaceType}
         />
       </div>
       <div style={{ flex: 1, position: "relative" }}>
