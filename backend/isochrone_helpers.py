@@ -79,20 +79,27 @@ async def snap_point_to_edge(lat: float, lng: float, db: Session):
     result = await db.execute(q, {"lat": lat, "lng": lng})
     return result.first()
 
+async def get_isochrone_edges(snapped_point, lat: float, lng: float, cost_limit: float, db: Session):
+    buffer_meters = cost_limit * 2
 
+    edge_sql = f"""
+        SELECT id, u AS source, v AS target, length_m AS cost, length_m AS reverse_cost
+        FROM walkable_edges
+        WHERE geom && ST_Envelope(
+            ST_Buffer(
+                ST_SetSRID(ST_Point({lng}, {lat}), 4326)::geography,
+                {buffer_meters}
+            )::geometry
+        )
+    """
 
-
-
-
-async def get_isochrone_edges(snapped_point, db: Session, cost_limit: float = 1260):
-    query = text(
-        """
+    full_query = f"""
         WITH reachable AS (
             SELECT edge
             FROM pgr_drivingDistance(
-                'SELECT id, u AS source, v AS target, length_m AS cost, length_m AS reverse_cost FROM walkable_edges',
-                CAST(:start_vid AS BIGINT),
-                CAST(:cost_limit AS FLOAT)
+                $${edge_sql}$$,
+                {int(snapped_point.nearest_node)},
+                {float(cost_limit)}
             )
             WHERE edge != -1
         ),
@@ -121,15 +128,13 @@ async def get_isochrone_edges(snapped_point, db: Session, cost_limit: float = 12
             array_agg(id) AS edge_ids
         FROM limited_edges;
     """
-    )
 
-    tmp = await db.execute(
-        query, {"start_vid": snapped_point.nearest_node, "cost_limit": cost_limit}
-    )
+    result = await db.execute(text(full_query))
+    row = result.first()
 
-    result = tmp.first()
+    return {"geojson": row.geojson, "edge_ids": row.edge_ids}
 
-    return {"geojson": result.geojson, "edge_ids": result.edge_ids}
+
 
 
 async def get_polygon_and_places(

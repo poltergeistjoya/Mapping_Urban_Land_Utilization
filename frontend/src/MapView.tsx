@@ -101,7 +101,6 @@ const MapView = ({ selectedFeature, placeFeatures, edgesFeatures }: MapViewProps
         )}
 
 
-
         {computedEdges && (
           <Source id="computed-edges-source" type="geojson" data={computedEdges}>
             <Layer id="computed-edges-layer" type="line" paint={{ "line-color": "#3399ff", "line-width": 2 }} />

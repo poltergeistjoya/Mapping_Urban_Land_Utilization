@@ -179,6 +179,7 @@ async def compute_isochrone_pt(pt: MarkerPosition, db=Depends(get_db)):
     time_limit_min = 15
     m_walked_min = 85
     cost_limit = time_limit_min * m_walked_min
+    log.info(f"cost limit: {cost_limit}")
     t0 = time()
     log.info("isochrone.request.received", lat=pt.lat, lng=pt.lng)
 
@@ -193,12 +194,10 @@ async def compute_isochrone_pt(pt: MarkerPosition, db=Depends(get_db)):
     # log.info("Snapped Point", coordinates=snapped_point_geom.coords[:])
     node_geom = to_shape(snapped_point.nearest_node_geom)
     log.info("Nearest Node", coordinates=node_geom.coords[:])
+    log.info(f"Start vid: {snapped_point.nearest_node}")
 
-    edges_result = await get_isochrone_edges(snapped_point, db, cost_limit=cost_limit)
+    edges_result = await get_isochrone_edges(snapped_point, pt.lat, pt.lng, cost_limit, db)
     edges_geojson = edges_result.get("geojson")
-    edges_geom = edges_result.get("geoms")
-    if not edges_geom or all(g is None for g in edges_geom):
-        log.error("No usable edge geometries returned")
 
     edge_ids = edges_result.get("edge_ids")
 
@@ -212,7 +211,7 @@ async def compute_isochrone_pt(pt: MarkerPosition, db=Depends(get_db)):
         edge_ids=edge_ids, db=db, place_types=["grocery_store"]
     )
 
-    log.info(polygon_result)
+    # log.info(polygon_result)
 
     total_time = time() - t0
     log.info("isochrone.response.ready", total_duration=f"{total_time:.3f}s")
