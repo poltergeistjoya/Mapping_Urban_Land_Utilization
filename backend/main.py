@@ -18,16 +18,12 @@ from isochrone_helpers import (
     get_isochrone_edges,
     get_polygon_and_places,
 )
+from config import DATABASE_URL_ASYNC, LOCAL_IP
 
 from models.tables import Location, Place, WalkableEdge
 
 log = structlog.get_logger()
 load_dotenv(dotenv_path=".env")
-LOCAL_IP = os.getenv("LOCAL_IP")
-DATABASE_URL = (
-    "postgresql+asyncpg://postgres:yourpassword@db:5432/urban_utilization"
-)
-
 
 app = FastAPI()
 
@@ -38,8 +34,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-# Connect tp PostGIS database
-engine = create_async_engine(DATABASE_URL)
+# Connect to PostGIS database
+engine = create_async_engine(DATABASE_URL_ASYNC)
 SessionLocal = sessionmaker(
     autocommit=False, class_=AsyncSession, autoflush=False, bind=engine
 )

@@ -4,3 +4,18 @@ __pycache__/
 .idea/
 .DS_Store
 node_modules/
+
+# SQL dumps
+*.sql
+
+# Data directories
+data_normalization/cache/
+random_data/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+.env
+.venv/

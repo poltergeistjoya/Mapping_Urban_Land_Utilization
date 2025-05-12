@@ -14,11 +14,10 @@ from sqlalchemy_utils import database_exists, create_database
 from shapely.geometry import shape, Polygon, MultiPolygon, Point, LineString
 from shapely.geometry.base import BaseGeometry
 from backend.models.tables import Location, Place, WalkableEdge
+from config import DATABASE_URL, BATCH_SIZE
 
 
 log = structlog.get_logger()
-DATABASE_URL = "postgresql://postgres:yourpassword@db:5432/urban_utilization"
-BATCH_SIZE = 5000
 
 # set up the database connection
 engine = create_engine(DATABASE_URL)
