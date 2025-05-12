@@ -1,31 +1,45 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "fastapi-backend"
+name = "urban-utilization"
 version = "0.1.0"
-description = "Backend for Mapping Urban Land Utilization"
-readme = "README.md"
+description = "A tool for mapping urban land utilization"
 requires-python = ">=3.12"
 dependencies = [
-    "alembic>=1.15.1",
-    "asyncpg>=0.30.0",
-    "black>=25.1.0",
-    "dotenv>=0.9.9",
-    "fastapi>=0.115.12",
+    "fastapi>=0.109.2",
+    "uvicorn>=0.27.1",
+    "sqlalchemy>=2.0.27",
+    "asyncpg>=0.29.0",
+    "alembic>=1.13.1",
+    "python-dotenv>=1.0.1",
+    "pydantic>=2.6.1",
+    "pydantic-settings>=2.1.0",
+    "psycopg2-binary>=2.9.9",
+    "shapely>=2.0.2",
+    "geopandas>=0.14.1",
+    "folium>=0.15.1",
+    "branca>=0.6.0",
+    "jinja2>=3.1.3",
+    "aiohttp>=3.9.3",
+    "python-multipart>=0.0.9",
+    "requests>=2.31.0",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.5",
+    "httpx>=0.26.0",
+    "pytest-cov>=4.1.0",
+    "structlog>=25.2.0",
     "geoalchemy>=0.7.2",
     "geoalchemy2>=0.17.1",
     "greenlet>=3.1.1",
-    "jinja2>=3.1.6",
     "orjson>=3.10.18",
-    "psycopg2-binary>=2.9.10",
-    "pydantic>=2.11.3",
-    "pylint>=3.3.6",
-    "shapely>=2.1.0",
-    "sqlalchemy>=2.0.38",
     "sqlalchemy-utils>=0.41.2",
-    "structlog>=25.2.0",
-    "uvicorn>=0.34.0",
+    "black>=25.1.0",
+    "pylint>=3.3.6",
 ]
 
-[dependency-groups]
+[project.optional-dependencies]
 normalize-data = [
     "fiona>=1.10.1",
     "geopandas>=1.0.1",
@@ -35,3 +49,10 @@ normalize-data = [
     "pandas>=2.2.3",
     "shapely>=2.1.0",
 ]
+
+[tool.setuptools]
+package-dir = {"" = "backend"}
+packages = ["src"]
+
+[tool.setuptools.package-data]
+"src" = ["*.py"]

@@ -1,7 +1,7 @@
 from sqlalchemy import select, row_number, func
-from backend.models.tables import WalkableEdge
-from backend.models import Base
-from backend.models.views_utils import view
+from src.models.tables import WalkableEdge
+from src.models import Base
+from src.models.views_utils import view
 
 metadata = Base.metadata
 

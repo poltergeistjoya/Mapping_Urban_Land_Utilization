@@ -8,7 +8,7 @@ from shapely.geometry import mapping
 from shapely.geometry import shape, MultiLineString, mapping
 from shapely.ops import unary_union
 
-from models.tables import ALLOWED_PLACE_TYPES
+from .models.tables import ALLOWED_PLACE_TYPES
 
 log = structlog.get_logger()
 

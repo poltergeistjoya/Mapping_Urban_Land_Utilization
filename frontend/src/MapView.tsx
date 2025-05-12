@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Layer,
   Map,
@@ -10,6 +10,11 @@ import maplibregl, { MapGeoJSONFeature } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
+
+type Geometry = {
+  type: string;
+  coordinates: number[];
+};
 
 type MapViewProps = {
   selectedFeature: any | null;
@@ -38,7 +43,6 @@ const MapView = ({
   const [isochronePlaces, setIsochronePlaces] = useState<any | null>(null);
   const [isochronePolygon, setIsochronePolygon] = useState<any | null>(null);
   const [hoveredPlace, setHoveredPlace] = useState<MapGeoJSONFeature | null>(null);
-  const [loadingIsochrone, setLoadingIsochrone] = useState(false);
 
   // Keep refs in sync with latest props
   useEffect(() => {
@@ -81,7 +85,6 @@ const MapView = ({
 
           marker.on("dragend", () => {
             const { lat, lng } = marker.getLngLat();
-            setLoadingIsochrone(true);
             axios.post(`${BASE_URL}/isochrone-pt/`, {
               lat,
               lng,
@@ -94,8 +97,7 @@ const MapView = ({
                 setComputedEdges(res.data.edges);
                 setIsochronePolygon(res.data.polygon);
                 setIsochronePlaces(res.data.places);
-              })
-              .finally(() => setLoadingIsochrone(false));
+              });
           });
 
           markerRef.current = marker;
@@ -166,8 +168,8 @@ const MapView = ({
 
         {hoveredPlace && (
           <Popup
-            longitude={hoveredPlace.geometry.coordinates[0]}
-            latitude={hoveredPlace.geometry.coordinates[1]}
+            longitude={(hoveredPlace.geometry as Geometry).coordinates[0]}
+            latitude={(hoveredPlace.geometry as Geometry).coordinates[1]}
             anchor="top"
             closeButton={false}
             closeOnClick={false}

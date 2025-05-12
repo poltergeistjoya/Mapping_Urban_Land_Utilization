@@ -1,39 +1,185 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import Sidebar from "./Sidebar";
 import MapView from "./MapView";
 import LinearProgress from '@mui/material/LinearProgress';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
+const BASE_URL = import.meta.env.VITE_BASE_URL || "http://localhost:8000";
+console.log("Using BASE_URL:", BASE_URL);  // Debug log
+
+// Configure axios defaults
+axios.defaults.withCredentials = true;  // Enable credentials
+axios.defaults.headers.common['Accept'] = 'application/json';
+
+// Add request interceptor for debugging
+axios.interceptors.request.use(request => {
+  console.log('Starting Request:', {
+    url: request.url,
+    method: request.method,
+    headers: request.headers,
+    baseURL: request.baseURL
+  });
+  return request;
+});
+
+// Add response interceptor for debugging
+axios.interceptors.response.use(
+  response => {
+    console.log('Response:', {
+      status: response.status,
+      headers: response.headers,
+      data: response.data
+    });
+    return response;
+  },
+  error => {
+    console.error('Request Error:', {
+      message: error.message,
+      response: error.response ? {
+        status: error.response.status,
+        headers: error.response.headers,
+        data: error.response.data
+      } : 'No response',
+      config: {
+        url: error.config?.url,
+        method: error.config?.method,
+        headers: error.config?.headers,
+        baseURL: error.config?.baseURL
+      }
+    });
+    return Promise.reject(error);
+  }
+);
+
+const DEFAULT_CITY = "Baltimore";
+
+// Types
+type Feature = {
+  type: "Feature";
+  geometry: {
+    type: string;
+    coordinates: number[];
+  };
+  properties: {
+    name: string;
+    [key: string]: any;
+  };
+};
+
+type PlaceFeature = Feature & {
+  properties: {
+    name: string;
+    desc: string;
+    place_type: string;
+  };
+};
 
 const App = () => {
+  // State
   const [cityNames, setCityNames] = useState<string[]>([]);
-  const [selectedFeature, setSelectedFeature] = useState<any | null>(null);
+  const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);
   const [placeTypes, setPlaceTypes] = useState<string[]>([]);
   const [selectedPlaceTypes, setSelectedPlaceTypes] = useState<string[]>([]);
-  const [placeFeatures, setPlaceFeatures] = useState<any[]>([]);
-  const [edgesFeatures, setEdgesFeatures] = useState<any[]>([]);
+  const [placeFeatures, setPlaceFeatures] = useState<PlaceFeature[]>([]);
   const [globalLoading, setGlobalLoading] = useState(false);
   const [walkMinutes, setWalkMinutes] = useState(15);
-  const [selectedisoPlaceTypes, setSelectedisoPlaceTypes] = useState(["grocery_store"]);
+  const [selectedisoPlaceTypes, setSelectedisoPlaceTypes] = useState<string[]>(["grocery_store"]);
 
-
-  // Runs once on component mount, fetch all static data
-  useEffect(() => {
-    // Load city names with default (baltimore) selected
-    axios.get(`${BASE_URL}`).then((res) => {
+  // API calls
+  const fetchCityNames = async () => {
+    try {
+      const res = await axios.get<string[]>(`${BASE_URL}`);
       setCityNames(res.data);
-      fetchFeature("Baltimore"); // Default load
-    });
+      // Set Baltimore as default city
+      if (res.data.includes(DEFAULT_CITY)) {
+        fetchFeature(DEFAULT_CITY);
+      }
+    } catch (error) {
+      console.error("Failed to fetch city names:", error);
+    }
+  };
 
-    // Load place_types
-    axios.get(`${BASE_URL}/place_types/`).then((res) => {
+  const fetchPlaceTypes = async () => {
+    try {
+      const res = await axios.get<string[]>(`${BASE_URL}/place_types/`);
       setPlaceTypes(res.data);
-    });
+    } catch (error) {
+      console.error("Failed to fetch place types:", error);
+    }
+  };
+
+  const fetchFeature = async (cityName: string) => {
+    try {
+      const res = await axios.get(`${BASE_URL}/locations/`, {
+        params: { name: cityName },
+      });
+      
+      const features: Feature[] = res.data.map((loc: any) => ({
+        type: "Feature",
+        geometry: loc.geometry,
+        properties: { name: loc.name },
+      }));
+
+      setSelectedFeature(features[0]);
+    } catch (error) {
+      console.error(`Failed to fetch feature for ${cityName}:`, error);
+    }
+  };
+
+  const fetchPlaceFeatures = async (types: string[], cityName: string) => {
+    try {
+      const results = await Promise.all(
+        types.map((type) =>
+          axios.get(`${BASE_URL}/places`, {
+            params: {
+              place_type: type,
+              location_name: cityName,
+            },
+          })
+        )
+      );
+
+      const features: PlaceFeature[] = results.flatMap((res) =>
+        res.data.map((p: any) => ({
+          type: "Feature",
+          geometry: p.geometry,
+          properties: {
+            name: p.name,
+            desc: p.desc,
+            place_type: p.place_type,
+          },
+        }))
+      );
+
+      setPlaceFeatures(features);
+    } catch (error) {
+      console.error("Failed to fetch place features:", error);
+    }
+  };
+
+  // Event handlers
+  const handleCitySelect = (cityName: string) => {
+    fetchFeature(cityName);
+  };
+
+  const handleTogglePlaceType = (type: string, checked: boolean) => {
+    const updated = checked
+      ? [...selectedPlaceTypes, type]
+      : selectedPlaceTypes.filter((t) => t !== type);
+
+    setSelectedPlaceTypes(updated);
+    if (selectedFeature) {
+      fetchPlaceFeatures(updated, selectedFeature.properties.name);
+    }
+  };
+
+  // Effects
+  useEffect(() => {
+    fetchCityNames();
+    fetchPlaceTypes();
   }, []);
 
   useEffect(() => {
-    // Global loading indicator logic
     const reqInterceptor = axios.interceptors.request.use((config) => {
       setGlobalLoading(true);
       return config;
@@ -56,79 +202,9 @@ const App = () => {
     };
   }, []);
 
-  const fetchFeature = (cityName: string) => {
-    axios
-      .get(`${BASE_URL}/locations/`, {
-        params: { name: cityName },
-      })
-      .then((res) => {
-        const features = res.data.map((loc: any) => ({
-          type: "Feature",
-          geometry: loc.geometry,
-          properties: { name: loc.name },
-        }));
-        console.log("Raw API response:", res.data);
-        console.log("Received location features:", features);
-        console.log("First feature geometry:", features[0]?.geometry);
-
-        setSelectedFeature(features[0]);
-      });
-
-    // //Get walk network
-    // axios.get(`${BASE_URL}/edges/`, {
-    //   params: {location_name:cityName },
-    // }).then((res) => {
-    //   setEdgesFeatures(res.data);
-    // });
-  };
-
-  const handleCitySelect = (cityName: string) => {
-    fetchFeature(cityName);
-  };
-
-  const fetchPlaceFeatures = (types: string[], cityName: string) => {
-    Promise.all(
-      types.map((type) =>
-        axios
-          .get(`${BASE_URL}/places`, {
-            params: {
-              place_type: type,
-              location_name: cityName,
-            },
-          })
-          .then((res) =>
-            res.data.map((p: any) => ({
-              type: "Feature",
-              geometry: p.geometry,
-              properties: {
-                name: p.name,
-                desc: p.desc,
-                place_type: type,
-              },
-            })),
-          ),
-      ),
-    ).then((results) => {
-      setPlaceFeatures(results.flat());
-    });
-  };
-
-  const handleTogglePlaceType = (type: string, checked: boolean) => {
-    const updated = checked
-      ? [...selectedPlaceTypes, type]
-      : selectedPlaceTypes.filter((t) => t !== type);
-
-    setSelectedPlaceTypes(updated);
-    if (selectedFeature) {
-      fetchPlaceFeatures(updated, selectedFeature.properties.name);
-    }
-  };
-
   return (
     <div style={{ display: "flex", height: "100vh" }}>
-      <div
-        style={{ flex: "0 0 250px", padding: "1rem", background: "#f4f4f4" }}
-      >
+      <div style={{ flex: "0 0 250px", padding: "1rem", background: "#f4f4f4" }}>
         <Sidebar
           cityNames={cityNames}
           placeTypes={placeTypes}
@@ -145,13 +221,13 @@ const App = () => {
         />
       </div>
       <div style={{ flex: 1, position: "relative" }}>
-      <MapView
-        selectedFeature={selectedFeature}
-        placeFeatures={placeFeatures}
-        edgesFeatures={edgesFeatures}
-        walkMinutes={walkMinutes}
-        isoPlaceTypes={selectedisoPlaceTypes}
-      />
+        <MapView
+          selectedFeature={selectedFeature}
+          placeFeatures={placeFeatures}
+          edgesFeatures={[]}
+          walkMinutes={walkMinutes}
+          isoPlaceTypes={selectedisoPlaceTypes}
+        />
         {globalLoading && (
           <div style={{
             position: "absolute",
@@ -168,7 +244,5 @@ const App = () => {
     </div>
   );
 };
-
-
 
 export default App;

@@ -1,3 +1,6 @@
+import { ChangeEvent } from "react";
+
+// Types
 type SidebarProps = {
   cityNames: string[];
   placeTypes: string[];
@@ -9,6 +12,48 @@ type SidebarProps = {
   onToggleIsoPlaceType: (type: string, checked: boolean) => void;
 };
 
+// Styles
+const styles = {
+  sidebar: {
+    padding: "1rem",
+  },
+  section: {
+    marginBottom: "1.5rem",
+  },
+  heading: {
+    fontSize: "1.1rem",
+    fontWeight: 600,
+    marginBottom: "0.75rem",
+    color: "#333",
+  },
+  select: {
+    padding: "0.5rem",
+    fontSize: "1rem",
+    width: "100%",
+    borderRadius: "4px",
+    border: "1px solid #ccc",
+  },
+  checkboxGroup: {
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "0.5rem",
+  },
+  checkboxLabel: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.5rem",
+    fontSize: "0.9rem",
+    cursor: "pointer",
+  },
+  numberInput: {
+    marginLeft: "0.5rem",
+    width: "4rem",
+    padding: "0.25rem",
+    borderRadius: "4px",
+    border: "1px solid #ccc",
+  },
+};
+
 const Sidebar = ({
   cityNames,
   placeTypes,
@@ -18,62 +63,79 @@ const Sidebar = ({
   onTogglePlaceType,
   onSetWalkMinutes,
   onToggleIsoPlaceType,
-}: SidebarProps) => (
-  <div id="sidebar" style={{ padding: "1rem" }}>
-    <h3>Select a city</h3>
-    <select
-      onChange={(e) => onSelect(e.target.value)}
-      defaultValue="Baltimore"
-      style={{ padding: "0.5rem", fontSize: "1rem" }}
-    >
-      {cityNames.map((city) => (
-        <option key={city} value={city}>
-          {city}
-        </option>
-      ))}
-    </select>
+}: SidebarProps) => {
+  const handleCityChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    onSelect(e.target.value);
+  };
 
-    <h3>Places</h3>
-    {placeTypes.map((type) => (
-      <div key={`places-${type}`}>
-        <label>
-          <input
-            type="checkbox"
-            onChange={(e) => onTogglePlaceType(type, e.target.checked)}
-          />
-          {type}
-        </label>
+  const handleWalkMinutesChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = Number(e.target.value);
+    if (value >= 1 && value <= 180) {
+      onSetWalkMinutes(value);
+    }
+  };
+
+  return (
+    <div style={styles.sidebar}>
+      <div style={styles.section}>
+        <h3 style={styles.heading}>Select a city</h3>
+        <select
+          onChange={handleCityChange}
+          defaultValue="Baltimore"
+          style={styles.select}
+        >
+          {cityNames.map((city) => (
+            <option key={city} value={city}>
+              {city}
+            </option>
+          ))}
+        </select>
       </div>
-    ))}
 
-    <h3>Isochrone Settings</h3>
-    <label>
-      Walk time (minutes):
-      <input
-        type="number"
-        min="1"
-        max="180"
-        value={walkMinutes}
-        onChange={(e) => onSetWalkMinutes(Number(e.target.value))}
-        style={{ marginLeft: "0.5rem", width: "4rem" }}
-      />
-    </label>
-
-    <div style={{ marginTop: "0.5rem" }}>
-      {placeTypes.map((type) => (
-        <div key={`iso-${type}`}>
-          <label>
-            <input
-              type="checkbox"
-              onChange={(e) => onToggleIsoPlaceType(type, e.target.checked)}
-              checked={selectedisoPlaceTypes.includes(type)}
-            />
-            {type}
-          </label>
+      <div style={styles.section}>
+        <h3 style={styles.heading}>Places</h3>
+        <div style={styles.checkboxGroup}>
+          {placeTypes.map((type) => (
+            <label key={`places-${type}`} style={styles.checkboxLabel}>
+              <input
+                type="checkbox"
+                onChange={(e) => onTogglePlaceType(type, e.target.checked)}
+              />
+              {type}
+            </label>
+          ))}
         </div>
-      ))}
+      </div>
+
+      <div style={styles.section}>
+        <h3 style={styles.heading}>Isochrone Settings</h3>
+        <label style={styles.checkboxLabel}>
+          Walk time (minutes):
+          <input
+            type="number"
+            min="1"
+            max="180"
+            value={walkMinutes}
+            onChange={handleWalkMinutesChange}
+            style={styles.numberInput}
+          />
+        </label>
+
+        <div style={{ ...styles.checkboxGroup, marginTop: "0.75rem" }}>
+          {placeTypes.map((type) => (
+            <label key={`iso-${type}`} style={styles.checkboxLabel}>
+              <input
+                type="checkbox"
+                onChange={(e) => onToggleIsoPlaceType(type, e.target.checked)}
+                checked={selectedisoPlaceTypes.includes(type)}
+              />
+              {type}
+            </label>
+          ))}
+        </div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default Sidebar;

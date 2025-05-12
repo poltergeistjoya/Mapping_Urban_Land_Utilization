@@ -12,15 +12,14 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from shapely.geometry import mapping
 from time import time
 import json
-from pydantic_models import MarkerPosition
-from isochrone_helpers import (
+from .pydantic_models import MarkerPosition
+from .isochrone_helpers import (
     snap_point_to_edge,
     get_isochrone_edges,
     get_polygon_and_places,
 )
-from config import DATABASE_URL_ASYNC, LOCAL_IP
-
-from models.tables import Location, Place, WalkableEdge
+from .config import DATABASE_URL_ASYNC, ALLOWED_ORIGINS
+from .models.tables import Location, Place, WalkableEdge
 
 log = structlog.get_logger()
 load_dotenv(dotenv_path=".env")
@@ -29,7 +28,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[f"http://{LOCAL_IP}:5173"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

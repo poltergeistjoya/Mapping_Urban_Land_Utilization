@@ -1,14 +1,43 @@
 services:
   backend:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
     container_name: fastapi_backend
     restart: always
     ports:
       - "8000:8000"
     depends_on:
       - db
+    volumes:
+      - ./backend:/app/backend  # For development hot-reload
     environment:
-      DATABASE_URL: "postgresql+asyncpg://postgres:yourpassword@db:5342/urban_utilization"
+      - DATABASE_URL=postgresql+asyncpg://postgres:yourpassword@db:5432/urban_utilization
+      - HOST=0.0.0.0
+      - ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=yourpassword
+      - POSTGRES_DB=urban_utilization
+      - DB_HOST=db
+      - DB_PORT=5432
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        - VITE_BASE_URL=http://localhost:8000
+    container_name: vite_frontend
+    restart: always
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
   db: 
     build:
       context: .
@@ -24,6 +53,12 @@ services:
       POSTGRES_DB: urban_utilization
     volumes:
       - postgis_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
 
 volumes:
   postgis_data:
