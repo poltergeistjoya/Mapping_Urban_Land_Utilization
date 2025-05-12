@@ -25,7 +25,7 @@ log = structlog.get_logger()
 load_dotenv(dotenv_path=".env")
 LOCAL_IP = os.getenv("LOCAL_IP")
 DATABASE_URL = (
-    "postgresql+asyncpg://postgres:yourpassword@localhost:5342/urban_utilization"
+    "postgresql+asyncpg://postgres:yourpassword@db:5432/urban_utilization"
 )
 
 

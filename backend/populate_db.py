@@ -17,7 +17,7 @@ from backend.models.tables import Location, Place, WalkableEdge
 
 
 log = structlog.get_logger()
-DATABASE_URL = "postgresql://postgres:yourpassword@localhost:5342/urban_utilization"
+DATABASE_URL = "postgresql://postgres:yourpassword@db:5432/urban_utilization"
 BATCH_SIZE = 5000
 
 # set up the database connection

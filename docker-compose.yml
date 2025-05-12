@@ -8,17 +8,19 @@ services:
     depends_on:
       - db
     environment:
-      DATABASE_URL: "postgresql://postgres:yourpassword@localhost:5342/urban_utilization"
+      DATABASE_URL: "postgresql+asyncpg://postgres:yourpassword@db:5342/urban_utilization"
   db: 
-    image: strefossen/pgrouting no change to 15.3.3.
-    container_name: postgis_db standardize this and add pg routing extension 
+    build:
+      context: .
+      dockerfile: Dockerfile.db
+    container_name: postgis_db
     restart: always
     platform: linux/amd64
     ports:
-      - "5432:5432"
+      - "5342:5432"
     environment: 
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: yourpassword
       POSTGRES_DB: urban_utilization
     volumes:
       - postgis_data:/var/lib/postgresql/data
