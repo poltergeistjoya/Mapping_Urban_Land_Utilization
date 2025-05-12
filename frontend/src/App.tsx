@@ -4,8 +4,13 @@ import Sidebar from "./Sidebar";
 import MapView from "./MapView";
 import LinearProgress from '@mui/material/LinearProgress';
 
+// Use environment variable from Docker with fallback
 const BASE_URL = import.meta.env.VITE_BASE_URL || "http://localhost:8000";
-console.log("Using BASE_URL:", BASE_URL);  // Debug log
+if (!import.meta.env.VITE_BASE_URL) {
+  console.warn("VITE_BASE_URL not set, using default:", BASE_URL);
+} else {
+  console.log("Using BASE_URL from environment:", BASE_URL);
+}
 
 // Configure axios defaults
 axios.defaults.withCredentials = true;  // Enable credentials
