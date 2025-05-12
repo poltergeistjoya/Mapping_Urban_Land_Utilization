@@ -1,3 +1,4 @@
+import os
 import sqlalchemy
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy import create_engine, select, inspect, func, tuple_
@@ -13,8 +14,9 @@ import structlog
 from sqlalchemy_utils import database_exists, create_database
 from shapely.geometry import shape, Polygon, MultiPolygon, Point, LineString
 from shapely.geometry.base import BaseGeometry
-from .models.tables import Location, Place, WalkableEdge
-from .config import DATABASE_URL, BATCH_SIZE
+from models.tables import Location, Place, WalkableEdge
+from config import DATABASE_URL, BATCH_SIZE
+from time import time
 
 
 log = structlog.get_logger()

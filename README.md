@@ -1,8 +1,116 @@
-# Mapping_Urban_Land_Utilization
+# Mapping Urban Land Utilization
 
-make sure db is running first
-then do the backend 
-then the frontend
+A web application for visualizing and analyzing urban land utilization patterns using geographical data.
+
+## Prerequisites
+
+- Docker and Docker Compose
+- PostgreSQL dump file (`recent_dump.sql`) for initial data
+
+## Quick Start
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/Mapping_Urban_Land_Utilization.git
+cd Mapping_Urban_Land_Utilization
+```
+
+2. Place the `recent_dump.sql` file in the project root directory
+
+3. Start the application:
+```bash
+docker compose up
+```
+
+4. Access the application:
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:8000
+- API Documentation: http://localhost:8000/docs
+
+## Adding New Data
+
+### Using Marimo Notebook
+
+The project includes a Marimo notebook for data exploration and cleaning. To run it:
+
+1. Install the data normalization dependencies using uv (make sure you're in the project root):
+```bash
+uv pip install --group normalize-data
+```
+
+2. Start the notebook:
+```bash
+marimo edit location_geojsons.py
+```
+
+3. The notebook will open in your browser. Use it to:
+   - Explore and clean geographical data
+   - Generate GeoJSON files
+   - Prepare data for database import
+   - Access the same database as the Docker setup (using the same environment variables)
+
+Note: This installs all data normalization dependencies including Marimo, geopandas, osmnx, and other required packages.
+
+### Development
+
+For development tools and testing:
+```bash
+uv pip install --group dev
+```
+
+For linting and code quality:
+```bash
+uv pip install --group lint
+```
+
+To install multiple groups at once:
+```bash
+uv pip install --group dev --group lint
+```
+
+### Database Updates
+
+After preparing new data in the Marimo notebook:
+
+1. Export the data to SQL format
+2. Update the database using the backend's import utilities
+3. Restart the backend service to load new data:
+```bash
+docker compose restart backend
+```
+
+## Development
+
+- Frontend: React + TypeScript + Vite
+- Backend: FastAPI + PostGIS
+- Database: PostgreSQL with PostGIS extension
+
+## Project Structure
+
+```
+.
+├── backend/           # FastAPI backend
+│   └── src/          # Backend source code
+├── frontend/         # React frontend
+├── location_geojsons.py  # Marimo notebook for data processing
+├── docker-compose.yml    # Docker services configuration
+└── recent_dump.sql   # Initial database data
+```
+
+## Troubleshooting
+
+- If the frontend can't connect to the backend, ensure both services are running:
+  ```bash
+  docker compose ps
+  ```
+- Check backend logs:
+  ```bash
+  docker compose logs backend
+  ```
+- Check frontend logs:
+  ```bash
+  docker compose logs frontend
+  ```
 
 ## Database 
 Postgres + postgis (spatial) + pgrouting (routing)

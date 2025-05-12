@@ -6,11 +6,21 @@ app = marimo.App(width="medium")
 
 @app.cell
 def _(__file__):
+    import os
+    from dotenv import load_dotenv
+    from pathlib import Path
+
+    # Load environment variables from .env.local
+    env_path = Path(__file__).resolve().parent.parent / '.env.local'
+    load_dotenv(env_path)
+    
+    # Print DB_HOST to verify it's loaded
+    print(f"DB_HOST is set to: {os.getenv('DB_HOST')}")
+
     import geopandas as gpd
     import pandas as pd
     import matplotlib.pyplot as plt
     import re
-    from pathlib import Path
     from shapely.geometry import mapping, Point
     from geoalchemy2.shape import from_shape
     from sqlalchemy import create_engine
@@ -20,11 +30,12 @@ def _(__file__):
     import pathlib 
     import osmnx as ox
 
-    #to import other packages
-    sys.path.append(str(pathlib.Path(__file__).resolve().parent.parent))
-    from backend.models import Base
-    from backend.models.tables import Location, ALLOWED_PLACE_TYPES
-    from backend.populate_db import engine, ensure_all_tables, populate_locations, populate_places, populate_edges
+    # Add src directory to path for imports
+    src_path = pathlib.Path(__file__).resolve().parent.parent / "backend" / "src"
+    sys.path.append(str(src_path))
+    
+    from models.tables import Base, Location, ALLOWED_PLACE_TYPES
+    from populate_db import engine, ensure_all_tables, populate_locations, populate_places, populate_edges
 
     ox.settings.use_cache = True
     ox.settings.log_console = True
@@ -55,11 +66,21 @@ def _(__file__):
 
 @app.cell
 def _():
-    GEOJSON_DIR = "../random_data/geojsons/"
-    SHPFILE_DIR = "../random_data/shapefiles/"
-    GRAPHML_DIR = "../random_data/graphml/"
-    CSV_DIR = "../random_data/csvs/"
-    TXT_DIR = "../random_data/txt"
+    from config import DATABASE_URL
+    DATABASE_URL
+    return (DATABASE_URL,)
+
+
+@app.cell
+def _():
+    # Get project root directory
+    project_root = Path(__file__).resolve().parent.parent
+    
+    GEOJSON_DIR = str(project_root / "random_data" / "geojsons") + "/"
+    SHPFILE_DIR = str(project_root / "random_data" / "shapefiles") + "/"
+    GRAPHML_DIR = str(project_root / "random_data" / "graphml") + "/"
+    CSV_DIR = str(project_root / "random_data" / "csvs") + "/"
+    TXT_DIR = str(project_root / "random_data" / "txt") + "/"
     return CSV_DIR, GEOJSON_DIR, GRAPHML_DIR, SHPFILE_DIR, TXT_DIR
 
 
