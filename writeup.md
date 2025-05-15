@@ -5,14 +5,14 @@ Originally, this project was meant to map underutilized land in Baltimore and NY
 The app can be used to show underutilized land in a selected city, but not as a metric of human activity; instead as a metric of available city resources. The main way it does so is by mapping specific resources within a city. The more interesting functionality it provides is the walkability isochrone, which can measure how well the land is utilized at a specific point in a city, but not the city itself unless some sampling was done over the whole dataset. The schema has changed to include a `walkable_edges` table to support the isochrone functionality and was made compatible with the `pgrouting` extension. Rather than having separate tables for each place type, all points that represent a `POINT(lat,long)` were fed into a `places` table for simplicity. The `cities` table was renamed to `locations`, and a column for `parent_id` was added to help reduce the size of some queries, though this optimization was not yet implemented. Additionally, my original schema did not show the spatial indexes on all geometry types, nor do my ORM definitions of said tables. However, for these queries to be efficient, there are GIST indexes on all `Polygon`, `Linestring`, and `Point` types through PostGIS. 
 
 ## Database and Description
-The database has three main tables:
+The database has three main [tables](https://github.com/poltergeistjoya/Mapping_Urban_Land_Utilization/blob/main/backend/src/models/tables.py):
 - `locations` (7 records)
 - `places` (36,009 records)
 - `walkable_edges` (1,128,854 records)
 
 These are the three main entities used by the app, each representing distinct geometries used in different ways to query data: `multipolygon`, `point`, and `linestring`. In the future, I would partition the tables by region and Jinja template queries to make the tables smaller (especially for the `walkable_edges` table).
 
-For a complete description of data sourcing, see the README's Data Sources section. Data was mainly collected from city open data portals such as Open Baltimore and Open NYC, or OpenStreetMap—through the Overpass Turbo API for Baltimore trash cans, or OSMnx for the walkable road networks. The Census Places dataset was also used to find the polygons of counties and cities. All data was cleaned and made to fit the schema by creating an appropriate GeoDataFrame (see README's Marimo section) and populated using the functions from `populate_db.py`.
+For a complete description of data sourcing, see the [README's Data Sources section](https://github.com/poltergeistjoya/Mapping_Urban_Land_Utilization?tab=readme-ov-file#data-sources). Data was mainly collected from city open data portals such as Open Baltimore and Open NYC, or OpenStreetMap—through the Overpass Turbo API for Baltimore trash cans, or OSMnx for the walkable road networks. The Census Places dataset was also used to find the polygons of counties and cities. All data was cleaned and made to fit the schema by creating an appropriate GeoDataFrame [(see README's Marimo section)](https://github.com/poltergeistjoya/Mapping_Urban_Land_Utilization?tab=readme-ov-file#using-marimo-notebook) and populated using the functions from [`populate_db.py`](https://github.com/poltergeistjoya/Mapping_Urban_Land_Utilization/blob/main/backend/src/populate_db.py).
 
 ## Functionality Description
 The app can render map data for Baltimore and NYC and generate isochrones for both. Users can:
@@ -20,7 +20,7 @@ The app can render map data for Baltimore and NYC and generate isochrones for bo
 - View selected place types in their city
 - Move a pin around to generate a walkability isochrone
 
-The default walkability time is 15 minutes, but users can go up to about 100 minutes (though the query will be slow) and pick multiple place types to highlight in their returned isochrone. The most interesting queries of the app live in this functionality and can be found in `isochrone_helpers.py`. The queries to the database are driven by an async driver (`asyncpg`), so multiple users can use the app simultaneously; however, this functionality has not been load tested. 
+The default walkability time is 15 minutes, but users can go up to about 100 minutes (though the query will be slow) and pick multiple place types to highlight in their returned isochrone. The most interesting queries of the app live in this functionality and can be found in [`isochrone_helpers.py`](https://github.com/poltergeistjoya/Mapping_Urban_Land_Utilization/blob/main/backend/src/isochrone_helpers.py). The queries to the database are driven by an async driver (`asyncpg`), so multiple users can use the app simultaneously; however, this functionality has not been load tested. 
 
 ## Known Bugs and Missing Features
 There are several known bugs and features that I would have liked to implement given the time:
@@ -41,7 +41,7 @@ The technical highlight of this project is the isochrone functionality. There we
 - Since I was using SQL, I needed to use a SQL extension that allows for routing, and setting up the correct image to use `pgrouting` was difficult.
 - Additionally, `pg_drivingdistance` requires specific columns. I attempted to make views from an early version of `walkable_edges` to satisfy `pg_drivingdistance`, but it was terribly slow, resulting in a refactor of the table.
 
-Writing the queries in `isochrone_helpers.py` to be low(ish) latency was the most interesting part. Originally, a 15-minute isochrone could take around 30 seconds to generate and render; now it can be as low as 7 seconds (for Baltimore). The key here was to:
+Writing the queries in [`isochrone_helpers.py`](https://github.com/poltergeistjoya/Mapping_Urban_Land_Utilization/blob/main/backend/src/isochrone_helpers.py) to be low(ish) latency was the most interesting part. Originally, a 15-minute isochrone could take around 30 seconds to generate and render; now it can be as low as 7 seconds (for Baltimore). The key here was to:
 1. Use rough bounding box filters
 2. Approximate the polygon of the network returned, rather than trying to unionize each `LINESTRING` in the isochrone together
 3. Use the `EXPLAIN ANALYZE` statement 
