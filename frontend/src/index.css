@@ -77,5 +77,18 @@ button:focus-visible {
 }
 
 #sidebar {
-  background-color: #c1e39d;
+  background-color: #f4f4f4;
+}
+
+#sidebar h3,
+#sidebar label,
+#sidebar select,
+#sidebar input[type="number"],
+#sidebar option {
+  color: #213547 !important;  /* Force black text for sidebar elements */
+}
+
+#sidebar select,
+#sidebar input[type="number"] {
+  background-color: #ffffff;
 }

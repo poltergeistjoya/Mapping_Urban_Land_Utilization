@@ -76,7 +76,7 @@ const Sidebar = ({
   };
 
   return (
-    <div style={styles.sidebar}>
+    <div id="sidebar" style={styles.sidebar}>
       <div style={styles.section}>
         <h3 style={styles.heading}>Select a city</h3>
         <select
