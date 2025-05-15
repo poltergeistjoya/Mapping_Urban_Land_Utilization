@@ -2,10 +2,22 @@
 
 A web application for visualizing and analyzing urban land utilization patterns using geographical data.
 
+## Required Ports
+
+The following ports need to be available on your machine:
+- `5173`: Frontend development server
+- `8000`: Backend API server
+- `5342`: PostgreSQL database (mapped from container port 5432)
+
+If any of these ports are already in use, you'll need to either:
+1. Stop the service using the port
+2. Or modify the port mappings in `docker-compose.yml`
+
 ## Prerequisites
 
 - Docker and Docker Compose
 - PostgreSQL dump file (`recent_dump.sql`) for initial data
+- Running PostgreSQL database (for Marimo notebook)
 
 ## Quick Start
 
@@ -15,19 +27,23 @@ git clone https://github.com/yourusername/Mapping_Urban_Land_Utilization.git
 cd Mapping_Urban_Land_Utilization
 ```
 
-2. Place the `recent_dump.sql` file in the project root directory
+2. Contact joyabutterfly@gmail.com to request:
+   - The `recent_dump.sql` file for initial database setup
+   - Sample data files for running the Marimo notebook
 
-3. Start the application:
+3. Place the `recent_dump.sql` file in the project root directory
+
+4. Start the application:
 ```bash
 docker compose up
 ```
 
-4. Access the application:
+5. Access the application:
 - Frontend: http://localhost:5173
 - Backend API: http://localhost:8000
 - API Documentation: http://localhost:8000/docs
 
-## Adding New Data
+## Data Sources and Processing
 
 ### Using Marimo Notebook
 
@@ -51,33 +67,50 @@ marimo edit location_geojsons.py
 
 Note: This installs all data normalization dependencies including Marimo, geopandas, osmnx, and other required packages.
 
-### Development
+### Data Sources
 
-For development tools and testing:
-```bash
-uv pip install --group dev
-```
+| Data Type | Source | Link | Notes |
+|-----------|--------|------|-------|
+| City Boundaries | Census Bureau | https://www.census.gov/cgi-bin/geo/shapefiles/index.php?year=2024&layergroup=Places | Maryland places shapefiles |
+| NYC Boroughs | NYC Open Data | https://data.cityofnewyork.us/resource/wh2p-dxnf.geojson | Borough boundaries |
+| Street Vendors (Baltimore) | Baltimore Open Data | https://data.baltimorecity.gov/datasets/baltimore::food-vendor-locations-1/about | Food vendor locations |
+| Street Vendors (NYC) | NYC DOHMH | - | Contact required |
+| Public Trash Cans (NYC) | NYC Open Data | https://data.cityofnewyork.us/Environment/DSNY-Litter-Basket-Inventory/8znf-7b2c/about_data | DSNY inventory |
+| Public Trash Cans (Baltimore) | OpenStreetMap | - | Via Overpass Turbo |
+| Grocery Stores (Baltimore) | Baltimore Open Data | https://data.baltimorecity.gov/maps/baltimore::grocery-stores | Store locations |
+| Grocery Stores (NYC) | NY State Data | https://data.ny.gov/Economic-Development/Retail-Food-Stores/9a8c-vfzj/about_data | Retail food stores |
+| Schools (Baltimore) | Baltimore Open Data | https://data.baltimorecity.gov/datasets/baltimore::baltimore-city-schools/explore | City schools |
+| Schools (NYC) | NYC Open Data | https://data.cityofnewyork.us/Education/2019-2020-School-Locations/wg9x-4ke6/about_data | Public school locations |
+| Public Transit (Baltimore) | MTA Maryland | https://www.mta.maryland.gov/developer-resources | GTFS data available |
+| Public Transit (NYC) | MTA | https://www.mta.info/developers | GTFS for subway, LIRR, Metro North, Bus |
+| Road Networks | OSMnx | - | Walkable road networks |
+| Farmers Markets (NYC) | - | - | To be added |
+| Liquor Licenses (Baltimore) | - | - | To be added |
 
-For linting and code quality:
-```bash
-uv pip install --group lint
-```
+## TODO
 
-To install multiple groups at once:
-```bash
-uv pip install --group dev --group lint
-```
+1. Configuration
+   - [ ] Create config file for all settings (batch size, database url, backend url, etc)
+   - [ ] Add batching to populate functions
 
-### Database Updates
 
-After preparing new data in the Marimo notebook:
+2. Backend Improvements
+   - [ ] Add Pydantic models for routes
+   - [ ] Add spatial partitioning (tiling)
+   - [ ] Add intermediate nodes for more accurate isochrones (10-20 meter spacing)
 
-1. Export the data to SQL format
-2. Update the database using the backend's import utilities
-3. Restart the backend service to load new data:
-```bash
-docker compose restart backend
-```
+3. Frontend Enhancements
+   - [ ] Fix state management issues
+   - [ ] Add favicon in frontend/public
+   - [ ] Move styling to CSS
+   - [ ] Fix Staten Island/Governors Island edge cases
+
+4. Data Processing
+   - [ ] Add private schools data
+   - [ ] Integrate ferry service data for NYC
+   - [ ] Add farmers markets data for NYC
+   - [ ] Add liquor licenses data for Baltimore
+   - [ ] Add street vendor data
 
 ## Development
 
